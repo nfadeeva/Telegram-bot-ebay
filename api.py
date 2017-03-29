@@ -34,5 +34,11 @@ def parse_xml(xmldoc, tag):
         res.append(element.firstChild.nodeValue)
     return res
 
-
-print(parse_xml(xmldoc, 'sellerUserName'))
+def parse_sellerInfo(xmldoc):
+    for element in xmldoc.getElementsByTagName('sellerInfo'):
+        element = element.firstChild
+        print(element.localName, element.firstChild.nodeValue)
+        while(element.nextSibling):
+            element = element.nextSibling
+            print(element.localName, element.firstChild.nodeValue)
+        print()
