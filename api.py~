@@ -19,7 +19,7 @@ def request(keywords):
       </paginationInput>
     </findItemsByKeywordsRequest>"""
 
-    s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=headers)
+    s = requests.post('http://svcs.sandbox.ebay.com/services/search/FindingService/v1', data=xml, headers=headers)
     return BytesIO(s.content)
 
 
