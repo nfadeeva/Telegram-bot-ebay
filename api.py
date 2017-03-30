@@ -1,7 +1,7 @@
 import requests
 import config
 from xml.dom import minidom
-from io import StringIO, BytesIO
+from io import BytesIO
 import xml.etree.ElementTree as ET
 
 
@@ -9,7 +9,6 @@ def findItemsByKeywords(
         keywords, outputSelector=None,
         paginationInput=None,
         sortOrder=None, itemFilter=None):
-
 
     root = ET.Element("findItemsByKeywords",
                          xmlns="http://www.ebay.com/marketplace/search/v1/services")
@@ -60,6 +59,7 @@ def parse_sellerInfo(xmldoc):
             element = element.nextSibling
             print(element.localName, element.firstChild.nodeValue)
         print()
+
 def request(keywords):
     headers = {'X-EBAY-SOA-SERVICE-NAME': 'FindingService',
                'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
@@ -67,7 +67,6 @@ def request(keywords):
                'Content-Type': 'text/xml'}
 
     xml = findItemsByKeywords('pen',outputSelector=['SellerInfo'],paginationInput={'entriesPerPage':'20', 'pageNumber': '1'})
-
     s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=headers)
     return BytesIO(s.content)
 
