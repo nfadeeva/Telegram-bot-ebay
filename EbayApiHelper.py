@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 import config
 from xml.dom import minidom
 
-class EbayApiHelper:
+class EbayApiHelper(object):
     """
     This class is for making xml request and get xml response
     """
@@ -17,6 +17,7 @@ class EbayApiHelper:
         self.__paginationInput = {'entriesPerPage': '20', 'pageNumber': '1'}
         self.__outputSelector = ['SellerInfo']
 
+        self.keywords = None
         self.sort = None
         self.result = None
 
@@ -49,7 +50,7 @@ class EbayApiHelper:
             sortOrder_elem.text = self.sort
         return ET.tostring(root)
 
-    def request(self,keywords):
-        xml = self.__findItemsByKeywords__(keywords)
+    def request(self):
+        xml = self.__findItemsByKeywords__(self.keywords)
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=self.__headers)
         self.result = BytesIO(s.content)
