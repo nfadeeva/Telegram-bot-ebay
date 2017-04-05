@@ -16,10 +16,14 @@ class EbayApiHelper:
                    'Content-Type': 'text/xml'}
         self.__paginationInput = {'entriesPerPage': '20', 'pageNumber': '1'}
         self.__outputSelector = ['SellerInfo']
+
         self.sort = None
         self.result = None
 
     def __findItemsByKeywords__(self,keywords):
+        """
+        :return: xml request
+        """
         root = ET.Element("findItemsByKeywords",
                              xmlns="http://www.ebay.com/marketplace/search/v1/services")
 
@@ -46,6 +50,6 @@ class EbayApiHelper:
         return ET.tostring(root)
 
     def request(self,keywords):
-        xml = self.__findItemsByKeywords__('pen')
+        xml = self.__findItemsByKeywords__(keywords)
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=self.__headers)
         self.result = BytesIO(s.content)
