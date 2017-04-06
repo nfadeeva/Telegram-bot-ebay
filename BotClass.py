@@ -32,7 +32,7 @@ class Bot:
             Bot.request_dict[chat_id] = request
             request.keywords = message.text
             Bot.bot.reply_to(message, reply_markup=generate_markup(sort_orders),
-                             text="Please, choose sort order")
+                             text="Please, choose the sort order")
             Bot.bot.register_next_step_handler(message, Bot.process_sort)
         except Exception:
             Bot.bot.reply_to(message, 'error, sorry')
@@ -53,13 +53,19 @@ class Bot:
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
             Bot.bot.reply_to(message,
-                             text="How many items do you want to see")
+                             text="How many items do you want to see?")
             Bot.bot.register_next_step_handler(message, Bot.process_num)
         except Exception:
             Bot.bot.reply_to(message, 'error, sorry')
 
     def process_num(message):
         try:
+            num = message.text
+            if not num.isdigit():
+                message = bot.reply_to(message,
+                                   "Num of items should be a number. How many items do you want to see?")
+                bot.register_next_step_handler(message, Bot.process_num)
+                return
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
             Bot.bot.reply_to(message, text=request.keywords)
