@@ -2,16 +2,21 @@ import telebot
 import config
 import random
 from telebot import types
+from xml.dom import minidom
 from EbayApiHelper import EbayApiHelper
+from ResponseParser import ResponseParser
 
 sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'StartTimeNewest', 'EndTimeSoonest', 'None']
-sellers_sort_orders = ['Rating']
+sellers_sort_orders = ['Rating', 'FeedbackScore','RatingAndFeedback','None']
 
 class Request:
     def __init__(self):
         self.keywords = None
         self.sort = None
         self.num = None
+        self.sellers = None
+        self.rating = None
+        self.sold = None
 
 class Bot:
     bot = telebot.TeleBot(config.token)
@@ -43,7 +48,7 @@ class Bot:
             request = Bot.request_dict[chat_id]
             request.sort = message.text
             Bot.bot.reply_to(message, reply_markup=generate_markup(sellers_sort_orders),
-                             text="..Sellers")
+                             text="Please, choose the sort order(sellers)")
             Bot.bot.register_next_step_handler(message, Bot.process_sellers_sort)
         except Exception:
             Bot.bot.reply_to(message, 'error, sorry')
@@ -52,6 +57,29 @@ class Bot:
         try:
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
+            request.sellers = message.text
+            Bot.bot.reply_to(message,
+                             text="How high should be seller's rating? Please, enter the number from 0 to 100")
+            Bot.bot.register_next_step_handler(message, Bot.process_sellers_rating)
+        except Exception:
+            Bot.bot.reply_to(message, 'error, sorry')
+
+    def process_sellers_rating(message):
+        try:
+            chat_id = message.chat.id
+            request = Bot.request_dict[chat_id]
+            request.rating = message.text
+            Bot.bot.reply_to(message,
+                             text="How high should be number of seller's sold items")
+            Bot.bot.register_next_step_handler(message, Bot.process_sellers_solds)
+        except Exception:
+            Bot.bot.reply_to(message, 'error, sorry')
+
+    def process_sellers_solds(message):
+        try:
+            chat_id = message.chat.id
+            request = Bot.request_dict[chat_id]
+            request.rating = message.text
             Bot.bot.reply_to(message,
                              text="How many items do you want to see?")
             Bot.bot.register_next_step_handler(message, Bot.process_num)
@@ -70,7 +98,10 @@ class Bot:
             request = Bot.request_dict[chat_id]
             Bot.bot.reply_to(message, text=request.keywords)
             helper = EbayApiHelper(request.keywords, request.sort)
-            helper.request()
+            xmldoc =  minidom.parse(helper.request())
+            parser = ResponseParser(xmldoc, request.sellers, request.num)
+
+
         except Exception:
             Bot.bot.reply_to(message, 'error, sorry')
 
