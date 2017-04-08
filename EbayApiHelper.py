@@ -8,17 +8,16 @@ class EbayApiHelper(object):
     This class is for making xml request and get xml response
     """
 
-    def __init__(self, keywords, sort=None, output_selector=None):
+    def __init__(self, keywords, sort=None):
 
         self.__headers = {'X-EBAY-SOA-SERVICE-NAME': 'FindingService',
                    'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
                    'X-EBAY-SOA-SECURITY-APPNAME': config.key,
                    'Content-Type': 'text/xml'}
         self.__pagination_input = {'entriesPerPage': '20', 'pageNumber': '1'}
-        self.__output_selector = output_selector
+        self.__output_selector = ['SellerInfo']
         self.__keywords = keywords
         self.__sort = sort
-        self.result = None
 
     def __findItemsByKeywords__(self,keywords):
         """
@@ -52,4 +51,5 @@ class EbayApiHelper(object):
     def request(self):
         xml = self.__findItemsByKeywords__(self.__keywords)
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=self.__headers)
-        self.result = BytesIO(s.content)
+        print(s.content)
+        return BytesIO(s.content)

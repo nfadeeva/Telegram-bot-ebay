@@ -7,7 +7,7 @@ from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
 
 sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'StartTimeNewest', 'EndTimeSoonest', 'None']
-sellers_sort_orders = ['Rating', 'FeedbackScore','RatingAndFeedback','None']
+sellers_sort_orders = ['Rating', 'FeedbackScore','None']
 
 class Request:
     def __init__(self):
@@ -15,8 +15,8 @@ class Request:
         self.sort = None
         self.num = None
         self.sellers = None
-        self.rating = None
-        self.sold = None
+        self.score = None
+        self.solds = None
 
 class Bot:
     bot = telebot.TeleBot(config.token)
@@ -59,7 +59,7 @@ class Bot:
             request = Bot.request_dict[chat_id]
             request.sellers = message.text
             Bot.bot.reply_to(message,
-                             text="How high should be seller's rating? Please, enter the number from 0 to 100")
+                             text="How high should be seller's score? Please, enter the number from 0 to 100")
             Bot.bot.register_next_step_handler(message, Bot.process_sellers_rating)
         except Exception:
             Bot.bot.reply_to(message, 'error, sorry')
@@ -79,7 +79,7 @@ class Bot:
         try:
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
-            request.rating = message.text
+            request.solds = message.text
             Bot.bot.reply_to(message,
                              text="How many items do you want to see?")
             Bot.bot.register_next_step_handler(message, Bot.process_num)
@@ -96,13 +96,16 @@ class Bot:
                 return
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
-            Bot.bot.reply_to(message, text=request.keywords)
             helper = EbayApiHelper(request.keywords, request.sort)
             xmldoc =  minidom.parse(helper.request())
-            parser = ResponseParser(xmldoc, request.sellers, request.num)
+            parser = ResponseParser(xmldoc, request.sellers, request.rating, request.solds)
+            items = list(map(lambda x : x[0],parser.parse_request()))
+            result = '\n'.join(items)
+            Bot.bot.reply_to(message, result[:request.num])
 
 
-        except Exception:
+        except Exception as e:
+            print(e)
             Bot.bot.reply_to(message, 'error, sorry')
 
 
