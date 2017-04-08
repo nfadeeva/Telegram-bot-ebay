@@ -96,12 +96,13 @@ class Bot:
                 return
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
+            request.num = (int)(num)
             helper = EbayApiHelper(request.keywords, request.sort)
             xmldoc =  minidom.parse(helper.request())
             parser = ResponseParser(xmldoc, request.sellers, request.rating, request.solds)
             items = list(map(lambda x : x[0],parser.parse_request()))
-            result = '\n'.join(items)
-            Bot.bot.reply_to(message, result[:request.num])
+            for item in items[:request.num]:
+                Bot.bot.send_message(message.chat.id, item)
 
 
         except Exception as e:

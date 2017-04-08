@@ -30,7 +30,7 @@ class ResponseParser(object):
             rating = self.parse_xml('positiveFeedbackPercent')
             items = list(zip(urls,scores,rating))
             print(items)
-            items.sort(key = lambda x: x[1])
+            items.sort(key = lambda x: x[1], reverse=True)
         if (self.__score.isdigit()):
             items = list(filter(lambda x: (int)(x[1]) >= (int)(self.__score), items))
         if (self.__solds.isdigit()):
