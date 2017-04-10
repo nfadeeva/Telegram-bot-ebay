@@ -8,6 +8,7 @@ from ResponseParser import ResponseParser
 
 sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'StartTimeNewest', 'EndTimeSoonest', 'None']
 sellers_sort_orders = ['Rating', 'FeedbackScore','None']
+pages = 20
 
 class Request:
     def __init__(self):
@@ -97,9 +98,14 @@ class Bot:
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
             request.num = (int)(num)
-            helper = EbayApiHelper(request.keywords, request.sort)
-            xmldoc =  minidom.parse(helper.request())
-            parser = ResponseParser(xmldoc, request.sellers, request.rating, request.solds)
+            xmldocs = []
+            for i in range(pages):
+                print(i)
+                helper = EbayApiHelper(request.keywords, request.sort, page=str(i+1))
+                print(i)
+                xmldoc =  minidom.parse(helper.request())
+                xmldocs.append(xmldoc)
+            parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
             items = list(map(lambda x : x[0],parser.parse_request()))
             for item in items[:request.num]:
                 Bot.bot.send_message(message.chat.id, item)
