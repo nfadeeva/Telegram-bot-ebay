@@ -1,3 +1,4 @@
+from collections import OrderedDict
 class ResponseParser(object):
 
     def __init__(self, xmldocs, sort, score, solds):
@@ -15,22 +16,14 @@ class ResponseParser(object):
                 res.append(element.firstChild.nodeValue)
         return res
 
-    def parse_sellerInfo(self):
-        for element in self.__xmldoc.getElementsByTagName('sellerInfo'):
-            element = element.firstChild
-            print(element.localName, element.firstChild.nodeValue)
-            while element.nextSibling:
-                element = element.nextSibling
-                print(element.localName, element.firstChild.nodeValue)
-            print()
-
     def parse_request(self):
         if (self.__sort):
             urls = self.parse_xml('viewItemURL')
             scores = self.parse_xml('feedbackScore')
             rating = self.parse_xml('positiveFeedbackPercent')
             #to avoid dublicates because of reload pages while making request
-            items = list(set(zip(urls,scores,rating)))
+            items = zip(urls,scores,rating)
+            items = list(OrderedDict.fromkeys(items))
             print(len(items))
             items.sort(key = lambda x: x[1], reverse=True)
         if (self.__score.isdigit()):
