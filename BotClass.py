@@ -2,13 +2,14 @@ import telebot
 import config
 import random
 from telebot import types
+import socket
 from xml.dom import minidom
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
 
 sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'StartTimeNewest', 'EndTimeSoonest', 'None']
 sellers_sort_orders = ['Rating', 'FeedbackScore','None']
-pages = 20
+pages = 10
 
 class Request:
     def __init__(self):
@@ -98,17 +99,23 @@ class Bot:
             chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
             request.num = (int)(num)
-            xmldocs = []
+            xmls = []
             for i in range(pages):
                 print(i)
                 helper = EbayApiHelper(request.keywords, request.sort, page=str(i+1))
                 print(i)
-                xmldoc =  minidom.parse(helper.request())
-                xmldocs.append(xmldoc)
-            parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
-            items = list(map(lambda x : x[0],parser.parse_request()))
-            for item in items[:request.num]:
-                Bot.bot.send_message(message.chat.id, item)
+                xmls.append(helper.createXml());
+            xmls_string = ';'.join(xmls)
+            sock = socket.socket()
+            sock.connect(('localhost', 9090))
+            sock.send(xmls_string.encode())
+            sock.close()
+                #xmldoc =  minidom.parse(helper.request())
+                #xmldocs.append(xmldoc)
+            # parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
+            # items = list(map(lambda x : x[0],parser.parse_request()))
+            # for item in items[:request.num]:
+            #     Bot.bot.send_message(message.chat.id, item)
 
 
         except Exception as e:

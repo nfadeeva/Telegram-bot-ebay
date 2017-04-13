@@ -19,10 +19,11 @@ class EbayApiHelper(object):
         self.__keywords = keywords
         self.__sort = sort
 
-    def __findItemsByKeywords__(self,keywords):
+    def createXml(self):
         """
         returns xml request
         """
+        keywords = self.__keywords;
         root = ET.Element("findItemsByKeywords",
                              xmlns="http://www.ebay.com/marketplace/search/v1/services")
 
@@ -46,9 +47,11 @@ class EbayApiHelper(object):
         if self.__sort:
             sort_elem = ET.SubElement(root, "sortOrder")
             sort_elem.text = self.__sort
-        return ET.tostring(root)
+        return ET.tostring(root).decode("utf-8")
 
-    def request(self):
-        xml = self.__findItemsByKeywords__(self.__keywords)
-        s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=self.__headers)
-        return BytesIO(s.content)
+    # def request(self):
+    #     xml = self.__findItemsByKeywords__(self.__keywords)
+    #     f = open('text.txt', 'wb');
+    #     f.write(xml);
+    #     s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=self.__headers)
+    #     return BytesIO(s.content)

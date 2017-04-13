@@ -9,12 +9,11 @@ public class RequestMaker {
     static int numThreads = 20;
 
     private String makeRequest (String xml){
-        System.out.println("start");
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-EBAY-SOA-SERVICE-NAME", "FindingService");
         headers.add("X-EBAY-SOA-OPERATION-NAME", "findItemsByKeywords");
-        headers.add("X-EBAY-SOA-SECURITY-APPNAME", "key");
+        headers.add("X-EBAY-SOA-SECURITY-APPNAME","Anastasi-EbayBot-PRD-2246ab0a7-f15336fc");
         headers.add("Content-Type", "text/xml");
         HttpEntity<String> request = new HttpEntity<String>(xml, headers);
         System.out.println("start");
@@ -27,7 +26,8 @@ public class RequestMaker {
     public String request(String xmls) throws Exception {
         List<Future<String>> results = new LinkedList<>();
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        for (String i: xmls.split("REQUEST")) {
+        System.out.println("start_request");
+        for (String i: xmls.split(";")) {
             Callable<String> task = () -> {
                 String res = makeRequest(i);
                 return res;
