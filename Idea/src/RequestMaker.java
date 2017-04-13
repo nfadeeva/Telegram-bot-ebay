@@ -1,14 +1,21 @@
 import java.util.*;
 import java.util.concurrent.*;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+
 public class RequestMaker {
+    private BotJava bot;
+    public RequestMaker(BotJava bot)
+    {
+        this.bot = bot;
+    }
     static int numThreads = 20;
 
-    private String makeRequest (String xml){
+    private String makeFutureTask (String xml){
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-EBAY-SOA-SERVICE-NAME", "FindingService");
@@ -16,7 +23,6 @@ public class RequestMaker {
         headers.add("X-EBAY-SOA-SECURITY-APPNAME","Anastasi-EbayBot-PRD-2246ab0a7-f15336fc");
         headers.add("Content-Type", "text/xml");
         HttpEntity<String> request = new HttpEntity<String>(xml, headers);
-        System.out.println("start");
         ResponseEntity<String> response = restTemplate.postForEntity
                 ("http://svcs.ebay.com/services/search/FindingService/v1",
                         request, String.class);
@@ -29,7 +35,7 @@ public class RequestMaker {
         System.out.println("start_request");
         for (String i: xmls.split(";")) {
             Callable<String> task = () -> {
-                String res = makeRequest(i);
+                String res = makeFutureTask(i);
                 return res;
             };
             results.add(executor.submit(task));
@@ -37,7 +43,7 @@ public class RequestMaker {
         String res = "";
         for (Future<String> result : results)
             res += result.get();
-        System.out.println(res);
+        bot.sendMessage("DONE");
         return res;
     }
 }

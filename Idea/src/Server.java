@@ -2,7 +2,11 @@ import java.net.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 public class Server {
-    public static void main(String[] args) throws IOException {
+    private BotJava bot;
+    public Server(BotJava bot){
+        this.bot = bot;
+    }
+    public void run() throws IOException {
         ServerSocket serverSocket = null;
 
         try {
@@ -24,7 +28,7 @@ public class Server {
             }
             byte result[] = baos.toByteArray();
             String str = new String(result, StandardCharsets.UTF_8);
-            RequestMaker rm = new RequestMaker();
+            RequestMaker rm = new RequestMaker(bot);
             try {
                 rm.request(str);
             }
