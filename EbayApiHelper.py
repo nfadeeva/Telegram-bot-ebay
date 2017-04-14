@@ -2,7 +2,8 @@ import requests
 from io import BytesIO
 import xml.etree.ElementTree as ET
 import config
-
+import concurrent.futures
+import time
 class EbayApiHelper(object):
     """
     This class is for making xml request and get xml response
@@ -19,7 +20,7 @@ class EbayApiHelper(object):
         self.__keywords = keywords
         self.__sort = sort
 
-    def createXml(self):
+    def createXml(self, page):
         """
         returns xml request
         """
@@ -37,7 +38,8 @@ class EbayApiHelper(object):
                 outputSelector_elem.text = item
 
         # paginationInput is a dict
-        if self.__pagination_input:
+        pagination_input = {'entriesPerPage': '100', 'pageNumber': page}
+        if pagination_input:
             paginationInput_elem = ET.SubElement(root, "paginationInput")
             for key in self.__pagination_input:
                 key_elem = ET.SubElement(paginationInput_elem, key)
@@ -49,9 +51,11 @@ class EbayApiHelper(object):
             sort_elem.text = self.__sort
         return ET.tostring(root).decode("utf-8")
 
-    # def request(self):
-    #     xml = self.__findItemsByKeywords__(self.__keywords)
-    #     f = open('text.txt', 'wb');
-    #     f.write(xml);
-    #     s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=xml, headers=self.__headers)
-    #     return BytesIO(s.content)
+    def request(self, page):
+        s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.createXml(page), headers=self.__headers)
+        return BytesIO(s.content)
+    def futures(self,pages):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+            # Start the load operations and mark each future with its URL
+            futures = {executor.submit(self.request, page): page for page in range(1,pages)}
+        return futures
