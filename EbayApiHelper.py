@@ -9,7 +9,7 @@ class EbayApiHelper(object):
     This class is for making xml request and get xml response
     """
 
-    def __init__(self, keywords, sort=None, page = '1'):
+    def __init__(self, keywords, request,sort=None, page = '1'):
 
         self.__headers = {'X-EBAY-SOA-SERVICE-NAME': 'FindingService',
                    'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
@@ -19,6 +19,7 @@ class EbayApiHelper(object):
         self.__output_selector = ['SellerInfo']
         self.__keywords = keywords
         self.__sort = sort
+        self.__request = request
 
     def createXml(self, page):
         """
@@ -53,9 +54,10 @@ class EbayApiHelper(object):
 
     def request(self, page):
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.createXml(page), headers=self.__headers)
+        self.__request.progress+=1;
         return BytesIO(s.content)
+
     def futures(self,pages):
         with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-            # Start the load operations and mark each future with its URL
             futures = {executor.submit(self.request, page): page for page in range(1,pages)}
         return futures
