@@ -78,21 +78,12 @@ class Bot:
     @handler
     def process_next_changes(message):
         text = message.text
-        chat_id = message.chat.id
         if (text=='Another'):
             Bot.settings(message)
         elif (text == 'Get results'):
+            chat_id = message.chat.id
             request = Bot.request_dict[chat_id]
-            helper = EbayApiHelper(request.keywords, request)
-            futures = helper.futures(100)
-            xmldocs = []
-            for i in futures:
-                xmldoc = minidom.parse(i.result())
-                xmldocs.append(xmldoc)
-            parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
-            items = list(map(lambda x: x[0], parser.parse_request()))
-            for item in items[:request.num]:
-                Bot.bot.send_message(message.chat.id, item)
+            Bot.send_results(message, request)
 
     @handler
     def process_keywords(message):
@@ -151,25 +142,25 @@ class Bot:
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
         request.num = (int)(num)
+        Bot.send_results(message, request)
+
+    @handler
+    def send_results(message, request):
         helper = EbayApiHelper(request.keywords, request)
         futures = helper.futures(100)
         xmldocs = []
-        start = time.time()
         for i in futures:
             xmldoc = minidom.parse(i.result())
             xmldocs.append(xmldoc)
-        end = time.time()
-        print(end - start)
         parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
         items = list(map(lambda x: x[0], parser.parse_request()))
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
 
-        # @bot.message_handler(commands=['prog'])
-        # def progr(message):
-        #     request = Bot.request_dict[message.chat.id]
-        #     Bot.bot.send_message(message.chat.id, request.progress)
-
+    @bot.message_handler(commands=['prog'])
+    def progr(message):
+        request = Bot.request_dict[message.chat.id]
+        Bot.bot.send_message(message.chat.id, request.progress)
 
 def generate_markup(items):
     markup = None
