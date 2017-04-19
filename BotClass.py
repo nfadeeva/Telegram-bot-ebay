@@ -27,7 +27,9 @@ class Bot:
 
     @bot.message_handler(commands=['start'])
     def start(message):
-        Bot.bot.send_message(message.chat.id, "What are you searching for?")
+        markup = types.ReplyKeyboardRemove()
+        Bot.bot.send_message(message.chat.id, reply_markup = markup,
+                                text = "What are you searching for?")
         Bot.bot.register_next_step_handler(message, Bot.process_keywords)
 
     @bot.message_handler(commands=['settings'])
