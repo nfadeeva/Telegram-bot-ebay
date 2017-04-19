@@ -62,6 +62,7 @@ class Bot:
                              text="Please, enter value")
         Bot.bot.register_next_step_handler(message, Bot.process_changes)
 
+    @handler
     def process_changes(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -72,6 +73,7 @@ class Bot:
                              text="What do you want to do?")
         Bot.bot.register_next_step_handler(message, Bot.process_next_changes)
 
+    @handler
     def process_next_changes(message):
         text = message.text
         chat_id = message.chat.id
@@ -90,6 +92,7 @@ class Bot:
             for item in items[:request.num]:
                 Bot.bot.send_message(message.chat.id, item)
 
+    @handler
     def process_keywords(message):
         chat_id = message.chat.id
         request = Bunch(keywords=None, sort=None, sellers=None, solds=None, rating=None, progress=0, change=None)
@@ -99,6 +102,7 @@ class Bot:
                          text="Please, choose the sort order")
         Bot.bot.register_next_step_handler(message, Bot.process_sort)
 
+    @handler
     def process_sort(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -107,6 +111,7 @@ class Bot:
                          text="Please, choose the sort order(sellers)")
         Bot.bot.register_next_step_handler(message, Bot.process_sellers_sort)
 
+    @handler
     def process_sellers_sort(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -115,6 +120,7 @@ class Bot:
                          text="How high should be seller's score? Please, enter the number from 0 to 100")
         Bot.bot.register_next_step_handler(message, Bot.process_sellers_rating)
 
+    @handler
     def process_sellers_rating(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -123,6 +129,7 @@ class Bot:
                          text="How high should be number of seller's sold items")
         Bot.bot.register_next_step_handler(message, Bot.process_sellers_solds)
 
+    @handler
     def process_sellers_solds(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -131,6 +138,7 @@ class Bot:
                          text="How many items do you want to see?")
         Bot.bot.register_next_step_handler(message, Bot.process_num)
 
+    @handler
     def process_num(message):
         num = message.text
         if not num.isdigit():
