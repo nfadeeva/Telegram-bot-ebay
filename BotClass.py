@@ -5,7 +5,6 @@ from telebot import types
 from xml.dom import minidom
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
-import time
 import functools
 
 sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'StartTimeNewest', 'EndTimeSoonest', 'None']
@@ -34,11 +33,22 @@ class Bot:
 
     @bot.message_handler(commands=['settings'])
     def settings(message):
+        """Permit user to change some parameters of request"""
+
         Bot.bot.send_message(message.chat.id, reply_markup=generate_markup(settings),
                              text="What settings do you want to change?")
         Bot.bot.register_next_step_handler(message, Bot.process_settings)
 
+    @bot.message_handler(commands=['prog'])
+    def prog(message):
+        """Send progress to user"""
+
+        request = Bot.request_dict[message.chat.id]
+        Bot.bot.send_message(message.chat.id, request.progress)
+
     def handler(func):
+        """Handle errors and fix issue with multiple dialogs"""
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
@@ -52,6 +62,8 @@ class Bot:
 
     @handler
     def process_settings(message):
+        """Get the name of parameter user'd like to change"""
+
         chat_id = message.chat.id
         request = Bot.request_dict.get(chat_id)
         if not request:
@@ -66,11 +78,11 @@ class Bot:
 
     @handler
     def process_changes(message):
+        """Change parameter's value"""
+
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
-        print(request.change.lower())
         setattr(request, request.change.lower(), message.text)
-        print(getattr(request,request.change.lower()))
         Bot.bot.send_message(message.chat.id, reply_markup=generate_markup(changes),
                              text="What do you want to do?")
         Bot.bot.register_next_step_handler(message, Bot.process_next_changes)
@@ -157,10 +169,6 @@ class Bot:
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
 
-    @bot.message_handler(commands=['prog'])
-    def progr(message):
-        request = Bot.request_dict[message.chat.id]
-        Bot.bot.send_message(message.chat.id, request.progress)
 
 def generate_markup(items):
     markup = None
