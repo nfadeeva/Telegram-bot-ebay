@@ -58,6 +58,6 @@ class EbayApiHelper(object):
         return BytesIO(s.content)
 
     def futures(self,pages):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
-            futures = {executor.submit(self.request, page): page for page in range(1,pages)}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+            futures = {executor.submit(self.request, page): page for page in range(1, pages)}
         return futures
