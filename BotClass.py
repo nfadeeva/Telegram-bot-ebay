@@ -7,12 +7,12 @@ from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
 import functools
 
-sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'StartTimeNewest', 'EndTimeSoonest', 'None']
+sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'None']
 sellers_sort_orders = ['Rating', 'FeedbackScore','None']
 settings = ['Keywords', 'Sort', 'Sellers', 'Solds', 'Rating']
-changes = ['Get results', 'Another', 'Accept']
+changes = ['Get results', 'Change another one setting', 'Accept changes']
 markups = {'Sort': sort_orders, 'Sellers': sellers_sort_orders}
-pages = 100
+pages = 1000
 
 class Bunch:
     def __init__(self, **kwds):
@@ -46,13 +46,14 @@ class Bot:
         request = Bot.request_dict[message.chat.id]
         Bot.bot.send_message(message.chat.id, request.progress)
 
-    def handler(func):
+    def error_handler(func):
         """Handle errors and fix issue with multiple dialogs"""
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             try:
                 message = args[0]
+                #do nothing because another one bot will handle '/start'
                 if (message.text == '/start'):
                     return
                 return func(*args, **kwargs)
@@ -60,14 +61,36 @@ class Bot:
                 Bot.bot.reply_to(message, e)
         return wrapper
 
-    @handler
+    def input_validation(func):
+        """Handle errors and fix issue with multiple dialogs"""
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                message = args[0]
+                num = message.text
+                if not num.isdigit():
+                    message = Bot.bot.reply_to(message,
+                                           text="Please, enter a number")
+                    Bot.bot.register_next_step_handler(message, Bot.error_handler(Bot.input_validation(func)))
+                    return
+
+                return func(*args, **kwargs)
+            except Exception as e:
+                Bot.bot.reply_to(message, e)
+
+        return wrapper
+
+
+    @error_handler
     def process_settings(message):
         """Get the name of parameter user'd like to change"""
 
         chat_id = message.chat.id
         request = Bot.request_dict.get(chat_id)
         if not request:
-            request = Bunch(keywords=None, sort=None, sellers=None, solds=None, rating=None, progress=0,
+            request = Bunch(keywords=None, sort=None, sellers=None,
+                            solds=None, rating=None, progress=0,
                             change=None)
             Bot.request_dict[chat_id] = request
         request.change = message.text
@@ -76,7 +99,7 @@ class Bot:
                              text="Please, enter value")
         Bot.bot.register_next_step_handler(message, Bot.process_changes)
 
-    @handler
+    @error_handler
     def process_changes(message):
         """Change parameter's value"""
 
@@ -87,7 +110,7 @@ class Bot:
                              text="What do you want to do?")
         Bot.bot.register_next_step_handler(message, Bot.process_next_changes)
 
-    @handler
+    @error_handler
     def process_next_changes(message):
         text = message.text
         if (text=='Another'):
@@ -97,17 +120,18 @@ class Bot:
             request = Bot.request_dict[chat_id]
             Bot.send_results(message, request)
 
-    @handler
+    @error_handler
     def process_keywords(message):
         chat_id = message.chat.id
-        request = Bunch(keywords=None, sort=None, sellers=None, solds=None, rating=None, progress=0, change=None)
+        request = Bunch(keywords=None, sort=None, sellers=None, solds=None,
+                        rating=None, progress=0, change=None)
         Bot.request_dict[chat_id] = request
         request.keywords = message.text
         Bot.bot.reply_to(message, reply_markup=generate_markup(sort_orders),
                          text="Please, choose the sort order")
         Bot.bot.register_next_step_handler(message, Bot.process_sort)
 
-    @handler
+    @error_handler
     def process_sort(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -116,7 +140,7 @@ class Bot:
                          text="Please, choose the sort order(sellers)")
         Bot.bot.register_next_step_handler(message, Bot.process_sellers_sort)
 
-    @handler
+    @error_handler
     def process_sellers_sort(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -125,7 +149,7 @@ class Bot:
                          text="How high should be seller's score? Please, enter the number from 0 to 100")
         Bot.bot.register_next_step_handler(message, Bot.process_sellers_rating)
 
-    @handler
+    @error_handler
     def process_sellers_rating(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -134,29 +158,27 @@ class Bot:
                          text="How high should be number of seller's sold items")
         Bot.bot.register_next_step_handler(message, Bot.process_sellers_solds)
 
-    @handler
+    @error_handler
+    @input_validation
     def process_sellers_solds(message):
+        solds = message.text
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
-        request.solds = message.text
+        request.solds = solds
         Bot.bot.reply_to(message,
-                         text="How many items do you want to see?")
+                         text="How many items do you want to see? Please, enter a number")
         Bot.bot.register_next_step_handler(message, Bot.process_num)
 
-    @handler
+    @error_handler
+    @input_validation
     def process_num(message):
         num = message.text
-        if not num.isdigit():
-            message = bot.reply_to(message,
-                                   "Num of items should be a number. How many items do you want to see?")
-            bot.register_next_step_handler(message, Bot.process_num)
-            return
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
-        request.num = (int)(num)
+        request.num = int(num)
         Bot.send_results(message, request)
 
-    @handler
+    @error_handler
     def send_results(message, request):
         helper = EbayApiHelper(request.keywords, request)
         futures = helper.futures(100)
