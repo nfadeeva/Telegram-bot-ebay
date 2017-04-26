@@ -14,6 +14,43 @@ changes = ['Get results', 'Change another one setting', 'Accept changes']
 markups = {'Sort': sort_orders, 'Sellers': sellers_sort_orders}
 pages = 1000
 
+def error_handler(func):
+    """Handle errors and fix issue with multiple dialogs"""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            message = args[0]
+            # do nothing because another one bot will handle '/start'
+            if (message.text == '/start'):
+                return
+            return func(*args, **kwargs)
+        except Exception as e:
+            print(e)
+            #raise e
+            #Bot.bot.reply_to(message, e)
+
+    return wrapper
+
+
+def input_validation(func):
+    """Handle errors and fix issue with multiple dialogs"""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        message = args[0]
+        num = message.text
+        if not num.isdigit():
+            message = Bot.bot.reply_to(message,
+                                       text="Please, enter a number")
+            Bot.bot.register_next_step_handler(message, error_handler(input_validation(func)))
+            return
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
@@ -45,42 +82,6 @@ class Bot:
 
         request = Bot.request_dict[message.chat.id]
         Bot.bot.send_message(message.chat.id, request.progress)
-
-    def error_handler(func):
-        """Handle errors and fix issue with multiple dialogs"""
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                message = args[0]
-                #do nothing because another one bot will handle '/start'
-                if (message.text == '/start'):
-                    return
-                return func(*args, **kwargs)
-            except Exception as e:
-                Bot.bot.reply_to(message, e)
-        return wrapper
-
-    def input_validation(func):
-        """Handle errors and fix issue with multiple dialogs"""
-
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                message = args[0]
-                num = message.text
-                if not num.isdigit():
-                    message = Bot.bot.reply_to(message,
-                                           text="Please, enter a number")
-                    Bot.bot.register_next_step_handler(message, Bot.error_handler(Bot.input_validation(func)))
-                    return
-
-                return func(*args, **kwargs)
-            except Exception as e:
-                Bot.bot.reply_to(message, e)
-
-        return wrapper
-
 
     @error_handler
     def process_settings(message):
@@ -150,6 +151,7 @@ class Bot:
         Bot.bot.register_next_step_handler(message, Bot.process_sellers_rating)
 
     @error_handler
+    @input_validation
     def process_sellers_rating(message):
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
@@ -161,10 +163,9 @@ class Bot:
     @error_handler
     @input_validation
     def process_sellers_solds(message):
-        solds = message.text
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
-        request.solds = solds
+        request.solds = message.text
         Bot.bot.reply_to(message,
                          text="How many items do you want to see? Please, enter a number")
         Bot.bot.register_next_step_handler(message, Bot.process_num)
@@ -172,10 +173,9 @@ class Bot:
     @error_handler
     @input_validation
     def process_num(message):
-        num = message.text
         chat_id = message.chat.id
         request = Bot.request_dict[chat_id]
-        request.num = int(num)
+        request.num = int(message.text)
         Bot.send_results(message, request)
 
     @error_handler
