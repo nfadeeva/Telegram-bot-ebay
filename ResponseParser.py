@@ -29,12 +29,12 @@ class ResponseParser(object):
             items = list(OrderedDict.fromkeys(items))
             items.sort(key = lambda x: x[1], reverse=True)
         if (self.__score.isdigit()):
-            items = list(filter(lambda x: (int)(x[2]) >= (int)(self.__score), items))
+            items = list(filter(lambda x: (float)(x[2]) >= (int)(self.__score), items))
         if (self.__solds.isdigit()):
             items = list(filter(lambda x: (int)(x[1]) >= (int)(self.__solds), items))
         ###WILL BE FIXED
         else:
             return self.parse_xml('viewItemURL')
         print(len(items))
-        print(items)
+        #print(items)
         return items
