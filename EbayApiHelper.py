@@ -7,7 +7,7 @@ import time
 from collections import OrderedDict
 class EbayApiHelper(object):
     """
-    This class is for making xml request and get xml response
+    This class makes xml request and gets xml response
     """
 
     def __init__(self, keywords, request,sort=None, page = '1'):
@@ -16,9 +16,8 @@ class EbayApiHelper(object):
                    'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
                    'X-EBAY-SOA-SECURITY-APPNAME': config.key,
                    'Content-Type': 'text/xml'}
-        self.__pagination_input = {'entriesPerPage': '100', 'pageNumber': page}
         self.__output_selector = ['SellerInfo']
-        self.itemFilter = OrderedDict([('name', 'listingType'), ('value','FixedPrice')])
+        self.__itemFilter = {'name': 'listingType', 'value': 'FixedPrice'}
 
         self.__keywords = keywords
         self.__sort = sort
@@ -35,11 +34,12 @@ class EbayApiHelper(object):
         keywords_elem = ET.SubElement(root, "keywords")
         keywords_elem.text = keywords
 
-        if self.itemFilter:
-            itemFilter_elem = ET.SubElement(root, "itemFilter")
-            for key in self.itemFilter:
+        #itemFilter is a dict
+        if self.__itemFilter:
+            itemFilter_elem = ET.SubElement(root, "__itemFilter")
+            for key in self.__itemFilter:
                 key_elem = ET.SubElement(itemFilter_elem, key)
-                key_elem.text = self.itemFilter[key]
+                key_elem.text = self.__itemFilter[key]
 
         # outputSelector is a list
         if self.__output_selector:
@@ -51,9 +51,9 @@ class EbayApiHelper(object):
         pagination_input = {'entriesPerPage': '100', 'pageNumber': page}
         if pagination_input:
             paginationInput_elem = ET.SubElement(root, "paginationInput")
-            for key in self.__pagination_input:
+            for key in pagination_input:
                 key_elem = ET.SubElement(paginationInput_elem, key)
-                key_elem.text = self.__pagination_input[key]
+                key_elem.text = pagination_input[key]
 
         # sortOrder
         if self.__sort:
@@ -62,12 +62,11 @@ class EbayApiHelper(object):
         return ET.tostring(root).decode("utf-8")
 
     def request(self, page, pages):
-        s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.createXml(page), headers=self.__headers)
-        self.__request.progress+=int(1/pages);
+        s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.createXml(str(page)), headers=self.__headers)
+        self.__request.progress += int(1/pages*100);
         return BytesIO(s.content)
 
     def futures(self,pages):
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = {executor.submit(self.request, page, pages): page for page in range(1, pages)}
-        print("fin")
         return futures
