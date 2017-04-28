@@ -2,6 +2,7 @@ import telebot
 import config
 import random
 from telebot import types
+from telebot import logger
 from xml.dom import minidom
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
@@ -21,13 +22,13 @@ markup_home.row(types.InlineKeyboardButton(text="Help",callback_data="Help"),
 last = types.InlineKeyboardButton(text="Main Menu",callback_data="Main Menu"),\
                 types.InlineKeyboardButton(text="Back",callback_data="Back")
 
-def generate_markup(items, callback_data):
+def generate_markup(items):
     markup = None
     if(items):
         # markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup = types.InlineKeyboardMarkup()
         for i in items:
-            markup.add(types.InlineKeyboardButton(text=i,callback_data=callback_data))
+            markup.add(types.InlineKeyboardButton(text=i,callback_data=i))
         markup.row(last[0],last[1])
     return markup
 
@@ -87,7 +88,7 @@ class Bot:
 
         Bot.bot.send_message(message.chat.id, reply_markup=generate_markup(settings),
                              text="What settings do you want to change?")
-        #Bot.bot.register_next_step_handler(message, Bot.process_settings)
+        Bot.bot.register_next_step_handler(message, Bot.process_settings)
 
     @bot.message_handler(commands=['prog'])
     def prog(message):
@@ -95,20 +96,6 @@ class Bot:
 
         request = Bot.request_dict[message.chat.id]
         Bot.bot.send_message(message.chat.id, request.progress)
-
-    @error_handler
-    def process_settings(message):
-        """Get the name of parameter user'd like to change"""
-        chat_id = message.chat.id
-        request = Bot.request_dict.get(chat_id)
-        if not request:
-            request = Bunch(keywords=None, sort=None, sellers=None,
-                            solds=None, rating=None, progress=0,
-                            change=None)
-            Bot.request_dict[chat_id] = request
-        request.change = message.text
-        #CHANGE TEXT!
-        Bot.bot.register_next_step_handler(message, Bot.process_changes)
 
     @error_handler
     def process_changes(message):
@@ -148,30 +135,59 @@ class Bot:
         Bot.request_dict[chat_id] = request
         request.keywords = call.message.text
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(sort_orders, "sort_orders"),
+                                  reply_markup=generate_markup(sort_orders),
                                   text="Please, choose the sort order")
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data == "sort_orders")
+    @bot.callback_query_handler(func=lambda call: call.data == "Settings")
+    def process_settings(call):
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup=generate_markup(settings),
+                                  text="Tap on the setting you'd like to change")
+
+    @error_handler
+    @bot.callback_query_handler(func=lambda call: call.data in sort_orders)
     def process_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sort = call.message.text
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(sellers_sort_orders, "sellers_sort_orders"),
+                                  reply_markup=generate_markup(sellers_sort_orders),
                                   text="Please, choose the sort order(sellers)")
 
     @error_handler
     @input_validation
-    @bot.callback_query_handler(func=lambda call: call.data == "sellers_sort_orders")
+    @bot.callback_query_handler(func=lambda call: call.data in sellers_sort_orders)
     def process_sellers_sort(call):
+
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sellers = call.message.text
+        print(call.message.text)
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   text="How high should be seller's score? "
                                        "Please, enter the number from 0 to 100")
         Bot.bot.register_next_step_handler(call.message, Bot.process_sellers_rating)
+
+    @error_handler
+    @bot.callback_query_handler(func=lambda call: True)
+    def process_settings(call):
+        """Get the name of parameter user'd like to change"""
+        chat_id = call.message.chat.id
+        request = Bot.request_dict.get(chat_id)
+        if not request:
+            request = Bunch(keywords=None, sort=None, sellers=None,
+                            solds=None, rating=None, progress=0,
+                            change=None)
+            Bot.request_dict[chat_id] = request
+        change = call.data
+        # Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+        #                           reply_markup=generate_markup(markups[change]),
+        #                           text="Tap")
+        # Bot.bot.reply_to(call.message,
+        #                  reply_markup=generate_markup(markups[change]),
+        #                  text="Tap")
+        # Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
 
     @error_handler
     @input_validation
