@@ -13,7 +13,13 @@ settings = ['Keywords', 'Sort', 'Sellers', 'Solds', 'Rating']
 changes = ['Get results', 'Change another one setting', 'Accept changes']
 markups = {'Sort': sort_orders, 'Sellers': sellers_sort_orders}
 pages = 1000
-
+markup_home = types.InlineKeyboardMarkup()
+markup_home.row(types.InlineKeyboardButton(text="Search",callback_data="Search"))
+markup_home.row(types.InlineKeyboardButton(text="Result",callback_data="Result"))
+markup_home.row(types.InlineKeyboardButton(text="Help",callback_data="Help"),
+                types.InlineKeyboardButton(text="Settings",callback_data="Settings"))
+last = types.InlineKeyboardButton(text="Main Menu",callback_data="Main Menu"),\
+                types.InlineKeyboardButton(text="Back",callback_data="Back")
 
 def generate_markup(items, callback_data):
     markup = None
@@ -22,6 +28,7 @@ def generate_markup(items, callback_data):
         markup = types.InlineKeyboardMarkup()
         for i in items:
             markup.add(types.InlineKeyboardButton(text=i,callback_data=callback_data))
+        markup.row(last[0],last[1])
     return markup
 
 def error_handler(func):
@@ -50,6 +57,7 @@ def input_validation(func):
         if not num.isdigit():
             message = Bot.bot.reply_to(message,
                                        text="Please, enter a number")
+            #bot = telebot.TeleBot(config.token)
             Bot.bot.register_next_step_handler(message, error_handler(input_validation(func)))
             return
         return func(*args, **kwargs)
@@ -68,9 +76,9 @@ class Bot:
 
     @bot.message_handler(commands=['start'])
     def start(message):
-        markup = types.ReplyKeyboardRemove()
+        markup = markup_home
         Bot.bot.send_message(message.chat.id, reply_markup = markup,
-                                text = "What are you searching for?")
+                                text = "Hello")
         Bot.bot.register_next_step_handler(message, Bot.process_keywords)
 
     @bot.message_handler(commands=['settings'])
@@ -124,14 +132,25 @@ class Bot:
             Bot.send_results(message, request)
 
     @error_handler
-    def process_keywords(message):
-        chat_id = message.chat.id
+    @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
+    def load_main_menu(call):
+        #go back to the home page from search
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup=markup_home,
+                                  text="Hello")
+
+    @error_handler
+    @bot.callback_query_handler(func=lambda call: call.data == "Search")
+    def process_keywords(call):
+        chat_id = call.message.chat.id
         request = Bunch(keywords=None, sort=None, sellers=None, solds=None,
                         rating=None, progress=0, change=None)
         Bot.request_dict[chat_id] = request
-        request.keywords = message.text
-        Bot.bot.reply_to(message, reply_markup=generate_markup(sort_orders,"sort_orders"),
-                         text="Please, choose the sort order")
+        request.keywords = call.message.text
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup=generate_markup(sort_orders, "sort_orders"),
+                                  text="Please, choose the sort order")
+
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "sort_orders")
     def process_sort(call):
@@ -139,7 +158,7 @@ class Bot:
         request = Bot.request_dict[chat_id]
         request.sort = call.message.text
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(sellers_sort_orders,"sellers_sort_orders"),
+                                  reply_markup=generate_markup(sellers_sort_orders, "sellers_sort_orders"),
                                   text="Please, choose the sort order(sellers)")
 
     @error_handler
@@ -194,6 +213,7 @@ class Bot:
         items = list(map(lambda x: x[0], parser.parse_request()))
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
+
 if __name__ == '__main__':
     random.seed()
     bot = Bot()
