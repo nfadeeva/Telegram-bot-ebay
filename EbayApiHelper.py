@@ -63,7 +63,7 @@ class EbayApiHelper(object):
 
     def request(self, page, pages):
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.createXml(str(page)), headers=self.__headers)
-        self.__request.progress += int(1/pages*100);
+        self.__request.progress += int(1/pages*100)
         return BytesIO(s.content)
 
     def futures(self,pages):
