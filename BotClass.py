@@ -1,12 +1,13 @@
-import telebot
-import config
-import random
-from telebot import types
-from telebot import logger
-from xml.dom import minidom
+import utils
+from utils import error_handler
+from utils import input_validation
+
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
-import functools
+
+import random
+from telebot import types
+from xml.dom import minidom
 
 sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'None']
 sellers_sort_orders = ['Rating', 'FeedbackScore','None']
@@ -20,7 +21,8 @@ markup_home.row(types.InlineKeyboardButton(text="Result",callback_data="Result")
 markup_home.row(types.InlineKeyboardButton(text="Help",callback_data="Help"),
                 types.InlineKeyboardButton(text="Settings",callback_data="Settings"))
 last = types.InlineKeyboardButton(text="Main Menu",callback_data="Main Menu"),\
-                types.InlineKeyboardButton(text="Back",callback_data="Back")
+                types.InlineKeyboardButton(text="Back",callback_data="Back"),\
+                types.InlineKeyboardButton(text="Help",callback_data="Help")
 
 def generate_markup(items):
     markup = None
@@ -32,50 +34,18 @@ def generate_markup(items):
         markup.row(*last)
     return markup
 
-def error_handler(func):
-    """Handle errors and fix issue with multiple dialogs"""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            message = args[0]
-            # do nothing because another one bot will handle '/start'
-            if (message.text == '/start'):
-                return
-            return func(*args, **kwargs)
-        except Exception as e:
-            print(e)
-    return wrapper
-
-
-def input_validation(func):
-    """Checks if the message.text isdigit or not"""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        message = args[0]
-        num = message.text
-        if not num.isdigit():
-            message = Bot.bot.reply_to(message,
-                                       text="Please, enter a number")
-            #bot = telebot.TeleBot(config.token)
-            Bot.bot.register_next_step_handler(message, error_handler(input_validation(func)))
-            return
-        return func(*args, **kwargs)
-    return wrapper
-
-
 
 class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
 
 class Bot:
-    bot = telebot.TeleBot(config.token)
     request_dict = {}
+    bot = utils.bot
     def __init__(self):
         pass
 
+    #main commands
     @bot.message_handler(commands=['start'])
     def start(message):
         markup = markup_home
@@ -83,13 +53,13 @@ class Bot:
                                 text = "Hello")
         Bot.bot.register_next_step_handler(message, Bot.process_keywords)
 
-    @bot.message_handler(commands=['settings'])
-    def settings(message):
-        """Permit user to change some parameters of request"""
-
-        Bot.bot.send_message(message.chat.id, reply_markup=generate_markup(settings),
-                             text="What settings do you want to change?")
-        Bot.bot.register_next_step_handler(message, Bot.process_settings)
+    # @bot.message_handler(commands=['settings'])
+    # def settings(message):
+    #     """Permit user to change some parameters of request"""
+    #
+    #     Bot.bot.send_message(message.chat.id, reply_markup=generate_markup(settings),
+    #                          text="What settings do you want to change?")
+    #     Bot.bot.register_next_step_handler(message, Bot.process_settings)
 
     @bot.message_handler(commands=['prog'])
     def prog(message):
@@ -98,12 +68,12 @@ class Bot:
         request = Bot.request_dict[message.chat.id]
         Bot.bot.send_message(message.chat.id, request.progress)
 
+    #process changes in settings
     @error_handler
     def process_changes(call):
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=generate_markup(changes),
-                                  text="What do you want to do")
-
+                                  text="What do you want to do?")
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in changes)
     def process_next_changes(call):
@@ -115,13 +85,23 @@ class Bot:
             request = Bot.request_dict[chat_id]
             Bot.send_results(call.message, request)
 
+
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
     def load_main_menu(call):
-        #go back to the home page from search
+        """Go back to the home page from search"""
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=markup_home,
                                   text="Hello")
+
+    @error_handler
+    @bot.callback_query_handler(func=lambda call: call.data == "Settings")
+    def process_settings(call):
+        """Permit user to change some parameters of request"""
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup=generate_markup(settings),
+                                  text="Tap on the setting you'd like to change")
+
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
@@ -142,14 +122,6 @@ class Bot:
                          text="Please, choose the sort order")
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data == "Settings")
-    def process_settings(call):
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(settings),
-                                  text="Tap on the setting you'd like to change")
-
-
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in sort_orders)
     def process_sort(call):
         chat_id = call.message.chat.id
@@ -160,7 +132,8 @@ class Bot:
                                       reply_markup=generate_markup(sellers_sort_orders),
                                       text="Please, choose the sort order(sellers)")
         else:
-            Bot.bot.register_next_step_handler(call.message, Bot.process_next_changes)
+            print('change')
+            Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
 
 
 
@@ -177,7 +150,7 @@ class Bot:
                                        "Please, enter the number from 0 to 100")
             Bot.bot.register_next_step_handler(call.message, Bot.process_sellers_rating)
         else:
-            Bot.bot.register_next_step_handler(call.message, Bot.process_next_changes)
+            Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
 
 
     @error_handler
@@ -240,5 +213,5 @@ class Bot:
 
 if __name__ == '__main__':
     random.seed()
-    bot = Bot()
+    Bot = Bot()
     Bot.bot.polling(none_stop=True)
