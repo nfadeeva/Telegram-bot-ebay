@@ -1,10 +1,9 @@
 import utils
 from utils import error_handler
 from utils import input_validation
-
+from utils import Bunch
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
-
 import random
 from telebot import types
 from xml.dom import minidom
@@ -35,10 +34,6 @@ def generate_markup(items):
     return markup
 
 
-class Bunch:
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
-
 class Bot:
     request_dict = {}
     bot = utils.bot
@@ -51,7 +46,6 @@ class Bot:
         markup = markup_home
         Bot.bot.send_message(message.chat.id, reply_markup=markup,
                                 text = "Hello")
-        Bot.bot.register_next_step_handler(message, Bot.process_keywords)
 
     # @bot.message_handler(commands=['settings'])
     # def settings(message):
@@ -138,20 +132,76 @@ class Bot:
 
 
     @error_handler
-    @input_validation
     @bot.callback_query_handler(func=lambda call: call.data in sellers_sort_orders)
     def process_sellers_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sellers = call.message.text
+        markup = types.InlineKeyboardMarkup()
+        buttons = []
+        for i in [90, 95, 99, 100, None]:
+            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="rating " + str(i)))
+        markup.row(*buttons)
         if not request.change:
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  text="How high should be seller's score? "
-                                       "Please, enter the number from 0 to 100")
-            Bot.bot.register_next_step_handler(call.message, Bot.process_sellers_rating)
+                                      reply_markup=markup,
+                                      text="How high should be seller's score? ")
+            #Bot.bot.register_next_step_handler(call.message, Bot.process_sellers_rating)
         else:
             Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
 
+
+    @error_handler
+    @bot.callback_query_handler(func=lambda call: call.data[:6]=='rating')
+    def process_sellers_rating(call):
+        chat_id = call.message.chat.id
+        request = Bot.request_dict[chat_id]
+        request.rating = call.data[7:]
+        markup = types.InlineKeyboardMarkup()
+        buttons = []
+        for i in [100, 1000, 10000, None]:
+            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="solds" + str(i)))
+        markup.row(*buttons)
+        if not request.change:
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      reply_markup=markup,
+                                      text="How high should be number of seller's sold items")
+        else:
+            Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
+
+    @error_handler
+    @bot.callback_query_handler(func=lambda call: call.data[:5] == 'solds')
+    def process_sellers_rating(call):
+        chat_id = call.message.chat.id
+        request = Bot.request_dict[chat_id]
+        request.solds = call.data[6:]
+        if not request.change:
+            Bot.bot.reply_to(call.message,
+                             text="How many items do you want to see? Please, enter a number")
+        Bot.bot.register_next_step_handler(call.message, Bot.process_num)
+
+    @error_handler
+    @input_validation
+    def process_num(message):
+        chat_id = message.chat.id
+        request = Bot.request_dict[chat_id]
+        request.num = int(message.text)
+        Bot.send_results(message, request)
+
+    @error_handler
+    def send_results(message, request):
+        helper = EbayApiHelper(request.keywords, request)
+        futures = helper.futures(100)
+        xmldocs = []
+        print("start")
+        for i in futures:
+            xmldoc = minidom.parse(i.result())
+            xmldocs.append(xmldoc)
+        parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
+        items = list(map(lambda x: x[0], parser.parse_request()))
+        print("ifn")
+        for item in items[:request.num]:
+            Bot.bot.send_message(message.chat.id, item)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: True)
@@ -169,47 +219,6 @@ class Bot:
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                    reply_markup=generate_markup(markups[change]),
                                    text="Tap")
-
-    @error_handler
-    @input_validation
-    def process_sellers_rating(message):
-        chat_id = message.chat.id
-        request = Bot.request_dict[chat_id]
-        request.rating = message.text
-        Bot.bot.reply_to(message,
-                         text="How high should be number of seller's sold items")
-        Bot.bot.register_next_step_handler(message, Bot.process_sellers_solds)
-
-    @error_handler
-    @input_validation
-    def process_sellers_solds(message):
-        chat_id = message.chat.id
-        request = Bot.request_dict[chat_id]
-        request.solds = message.text
-        Bot.bot.reply_to(message,
-                         text="How many items do you want to see? Please, enter a number")
-        Bot.bot.register_next_step_handler(message, Bot.process_num)
-
-    @error_handler
-    @input_validation
-    def process_num(message):
-        chat_id = message.chat.id
-        request = Bot.request_dict[chat_id]
-        request.num = int(message.text)
-        Bot.send_results(message, request)
-
-    @error_handler
-    def send_results(message, request):
-        helper = EbayApiHelper(request.keywords, request)
-        futures = helper.futures(100)
-        xmldocs = []
-        for i in futures:
-            xmldoc = minidom.parse(i.result())
-            xmldocs.append(xmldoc)
-        parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
-        items = list(map(lambda x: x[0], parser.parse_request()))
-        for item in items[:request.num]:
-            Bot.bot.send_message(message.chat.id, item)
 
 if __name__ == '__main__':
     random.seed()

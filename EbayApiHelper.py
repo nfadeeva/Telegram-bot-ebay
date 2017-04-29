@@ -3,8 +3,7 @@ from io import BytesIO
 import xml.etree.ElementTree as ET
 import config
 import concurrent.futures
-import time
-from collections import OrderedDict
+
 class EbayApiHelper(object):
     """
     This class makes xml request and gets xml response

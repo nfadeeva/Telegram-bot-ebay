@@ -2,8 +2,12 @@ import config
 import telebot
 import functools
 
-bot = telebot.TeleBot(config.token)
+bot = telebot.TeleBot(config.token) #need to create bot here to use bot.'function'
 
+class Bunch:
+    """A dictionary that supports attribute-style access"""
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)
 
 def error_handler(func):
     """Handle errors and fix issue with multiple dialogs"""
@@ -21,7 +25,7 @@ def error_handler(func):
                 message = args[1]
                 text = message.text
 
-            # do nothing because another one bot will handle '/start'
+            #So nothing because another one bot will handle '/start'
             if (text == '/start'):
                 return
 
@@ -35,8 +39,6 @@ def input_validation(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        print('in')
-        print(*args)
         message = args[0]
         num = message.text
         if not num.isdigit():
