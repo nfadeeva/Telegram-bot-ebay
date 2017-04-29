@@ -29,7 +29,7 @@ def generate_markup(items):
         markup = types.InlineKeyboardMarkup()
         for i in items:
             markup.add(types.InlineKeyboardButton(text=i,callback_data=i))
-        markup.row(last[0],last[1])
+        markup.row(*last)
     return markup
 
 def error_handler(func):
@@ -65,6 +65,7 @@ def input_validation(func):
     return wrapper
 
 
+
 class Bunch:
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
@@ -78,7 +79,7 @@ class Bot:
     @bot.message_handler(commands=['start'])
     def start(message):
         markup = markup_home
-        Bot.bot.send_message(message.chat.id, reply_markup = markup,
+        Bot.bot.send_message(message.chat.id, reply_markup=markup,
                                 text = "Hello")
         Bot.bot.register_next_step_handler(message, Bot.process_keywords)
 
@@ -98,25 +99,21 @@ class Bot:
         Bot.bot.send_message(message.chat.id, request.progress)
 
     @error_handler
-    def process_changes(message):
-        """Change parameter's value"""
-
-        chat_id = message.chat.id
-        request = Bot.request_dict[chat_id]
-        setattr(request, request.change.lower(), message.text)
-        Bot.bot.send_message(message.chat.id, reply_markup=generate_markup(changes),
-                             text="What do you want to do?")
-        Bot.bot.register_next_step_handler(message, Bot.process_next_changes)
+    def process_changes(call):
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup=generate_markup(changes),
+                                  text="What do you want to do")
 
     @error_handler
-    def process_next_changes(message):
-        text = message.text
+    @bot.callback_query_handler(func=lambda call: call.data in changes)
+    def process_next_changes(call):
+        text = call.message.text
         if (text == 'Another'):
-            Bot.settings(message)
+            Bot.process_settingssettings(call)
         elif (text == 'Get results'):
-            chat_id = message.chat.id
+            chat_id = call.message.chat.id
             request = Bot.request_dict[chat_id]
-            Bot.send_results(message, request)
+            Bot.send_results(call.message, request)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
@@ -128,15 +125,21 @@ class Bot:
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
-    def process_keywords(call):
-        chat_id = call.message.chat.id
+    def process_search(call):
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup=types.InlineKeyboardMarkup().row(*last),
+                                  text="What are you searching for")
+        Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
+
+    @error_handler
+    def process_keywords(message):
+        chat_id = message.chat.id
         request = Bunch(keywords=None, sort=None, sellers=None, solds=None,
                         rating=None, progress=0, change=None)
         Bot.request_dict[chat_id] = request
-        request.keywords = call.message.text
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(sort_orders),
-                                  text="Please, choose the sort order")
+        request.keywords = message.text
+        Bot.bot.reply_to(message, reply_markup=generate_markup(sort_orders),
+                         text="Please, choose the sort order")
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
@@ -145,29 +148,37 @@ class Bot:
                                   reply_markup=generate_markup(settings),
                                   text="Tap on the setting you'd like to change")
 
+
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in sort_orders)
     def process_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sort = call.message.text
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(sellers_sort_orders),
-                                  text="Please, choose the sort order(sellers)")
+        if not request.change:
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      reply_markup=generate_markup(sellers_sort_orders),
+                                      text="Please, choose the sort order(sellers)")
+        else:
+            Bot.bot.register_next_step_handler(call.message, Bot.process_next_changes)
+
+
 
     @error_handler
     @input_validation
     @bot.callback_query_handler(func=lambda call: call.data in sellers_sort_orders)
     def process_sellers_sort(call):
-
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sellers = call.message.text
-        print(call.message.text)
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+        if not request.change:
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   text="How high should be seller's score? "
                                        "Please, enter the number from 0 to 100")
-        Bot.bot.register_next_step_handler(call.message, Bot.process_sellers_rating)
+            Bot.bot.register_next_step_handler(call.message, Bot.process_sellers_rating)
+        else:
+            Bot.bot.register_next_step_handler(call.message, Bot.process_next_changes)
+
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: True)
@@ -181,13 +192,10 @@ class Bot:
                             change=None)
             Bot.request_dict[chat_id] = request
         change = call.data
-        # Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-        #                           reply_markup=generate_markup(markups[change]),
-        #                           text="Tap")
-        # Bot.bot.reply_to(call.message,
-        #                  reply_markup=generate_markup(markups[change]),
-        #                  text="Tap")
-        # Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
+        request.change = True
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                   reply_markup=generate_markup(markups[change]),
+                                   text="Tap")
 
     @error_handler
     @input_validation
