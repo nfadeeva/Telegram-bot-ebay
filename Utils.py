@@ -11,7 +11,7 @@ class Bunch:
         self.__dict__.update(kwargs)
 
 
-def error_handler(func):
+def restart_handler(func):
     """Handle errors and fix issue with multiple dialogs"""
 
     @functools.wraps(func)
@@ -24,6 +24,7 @@ def error_handler(func):
                 text = message.text
             except:
                 index = 1
+                print(args[1])
                 message = args[1]
                 text = message.text
 
@@ -46,7 +47,7 @@ def input_validation(func):
         if not num.isdigit():
             message = bot.reply_to(message,
                                        text="Please, enter a number")
-            bot.register_next_step_handler(message, error_handler(input_validation(func)))
+            bot.register_next_step_handler(message, restart_handler(input_validation(func)))
             return
         return func(*args, **kwargs)
     return wrapper

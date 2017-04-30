@@ -1,5 +1,5 @@
 import Utils
-from Utils import error_handler, input_validation
+from Utils import restart_handler, input_validation
 from Utils import Bunch
 from Utils import generate_markup
 import Settings
@@ -31,26 +31,22 @@ class Bot:
         request = Bot.request_dict[message.chat.id]
         Bot.bot.send_message(message.chat.id, request.progress)
 
-    # Process changes in Settings.py
-    @error_handler
-    def process_changes(call):
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(Settings.changes),
-                                  text="What do you want to do?")
 
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.changes)
     def process_next_changes(call):
-        text = call.message.text
-        if text == 'Another':
-            Bot.process_settings(call)
+        text = call.data
+        if text == 'Change another one setting':
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      reply_markup=generate_markup(Settings.settings),
+                                      text="Tap on the setting you'd like to change")
         elif text == 'Get results':
             chat_id = call.message.chat.id
             request = Bot.request_dict[chat_id]
             Bot.send_results(call.message, request)
+        else:
+            pass
 
     # Handlers for main keyboard's buttons
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
     def load_main_menu(call):
         """Go back to the home page from search"""
@@ -58,7 +54,6 @@ class Bot:
                                   reply_markup=Settings.markup_home,
                                   text="Hello")
 
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
     def process_settings(call):
         """Permit user to change some parameters of request"""
@@ -66,30 +61,27 @@ class Bot:
                                   reply_markup=generate_markup(Settings.settings),
                                   text="Tap on the setting you'd like to change")
 
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
     def process_search(call):
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   text="What are you searching for")
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Result")
     def process_result(call):
         pass
 
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Help")
     def process_help(call):
         pass
 
-    @error_handler
+
     @bot.callback_query_handler(func=lambda call: call.data == "Back")
     def process_search(call):
         pass
 
     # Process request's parameters
-    @error_handler
+    @restart_handler
     def process_keywords(message):
         chat_id = message.chat.id
         request = Bunch(keywords=None, sort=None, sellers=None, solds=None,
@@ -99,20 +91,14 @@ class Bot:
         Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.sort_orders),
                          text="Please, choose the sort order")
 
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.sort_orders)
     def process_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sort = call.message.text
-        if not request.change:
-            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=generate_markup(Settings.sellers_sort_orders),
-                                      text="Please, choose the sort order(sellers)")
-        else:
-            Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
+        Bot.changes_detector(call, request, "Please, choose the sort order(sellers)",
+                             generate_markup(Settings.sellers_sort_orders))
 
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.sellers_sort_orders)
     def process_sellers_sort(call):
         chat_id = call.message.chat.id
@@ -123,15 +109,8 @@ class Bot:
         for i in [90, 95, 99, 100, None]:
             buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="rating " + str(i)))
         markup.row(*buttons)
-        if not request.change:
-            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=markup,
-                                      text="How high should be seller's score? ")
-        else:
-            Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
+        Bot.changes_detector(call, request, "How high should be seller's score? ", markup)
 
-
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data[:6] == 'rating')
     def process_sellers_rating(call):
         chat_id = call.message.chat.id
@@ -142,14 +121,9 @@ class Bot:
         for i in [100, 1000, 10000, None]:
             buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="solds" + str(i)))
         markup.row(*buttons)
-        if not request.change:
-            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=markup,
-                                      text="How high should be number of seller's sold items")
-        else:
-            Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
+        Bot.changes_detector(call, request, "How high should be number of seller's sold items", markup)
 
-    @error_handler
+
     @bot.callback_query_handler(func=lambda call: call.data[:5] == 'solds')
     def process_sellers_rating(call):
         chat_id = call.message.chat.id
@@ -160,7 +134,7 @@ class Bot:
                              text="How many items do you want to see? Please, enter a number")
         Bot.bot.register_next_step_handler(call.message, Bot.process_num)
 
-    @error_handler
+    @restart_handler
     @input_validation
     def process_num(message):
         chat_id = message.chat.id
@@ -168,7 +142,7 @@ class Bot:
         request.num = int(message.text)
         Bot.send_results(message, request)
 
-    @error_handler
+    @restart_handler
     def send_results(message, request):
         helper = EbayApiHelper(request.keywords, request)
         futures = helper.futures(Settings.pages)
@@ -181,9 +155,9 @@ class Bot:
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
 
-    @error_handler
+
     @bot.callback_query_handler(func=lambda call: True)
-    def process_settings(call):
+    def process_settings0(call):
         """Get the name of parameter user'd like to change"""
         chat_id = call.message.chat.id
         request = Bot.request_dict.get(chat_id)
@@ -197,6 +171,16 @@ class Bot:
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=generate_markup(Settings.markups[change]),
                                   text="Tap")
+    @classmethod
+    def changes_detector(cls, call, request, text, markup):
+        if not request.change:
+            cls.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              reply_markup=markup,
+                              text=text)
+        else:
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      reply_markup=generate_markup(Settings.changes),
+                                      text="What do you want to do?")
 
 if __name__ == '__main__':
     random.seed()
