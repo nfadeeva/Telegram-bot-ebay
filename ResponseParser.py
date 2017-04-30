@@ -28,7 +28,7 @@ class ResponseParser(object):
             # to avoid duplicates because of reload pages while making request
             items = list(zip(urls,scores,rating,fixed))
             # api doesn't work, so filter items by myself
-            items = filter(lambda x: x[3]=='FixedPrice',items)
+            #items = filter(lambda x: x[3]=='FixedPrice',items)
             items = list(OrderedDict.fromkeys(items))
             items.sort(key = lambda x: x[1], reverse=True)
         if self.__score.isdigit():

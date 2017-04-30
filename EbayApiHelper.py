@@ -36,7 +36,7 @@ class EbayApiHelper(object):
 
         # itemFilter is a dict
         if self.__itemFilter:
-            item_filter_elem = ET.SubElement(root, "__itemFilter")
+            item_filter_elem = ET.SubElement(root, "itemFilter")
             for key in self.__itemFilter:
                 key_elem = ET.SubElement(item_filter_elem, key)
                 key_elem.text = self.__itemFilter[key]
