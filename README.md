@@ -1,9 +1,9 @@
 # EbayItemsBot
 (Bot is currently developed)
 
-Telegram bot that sends items from eBay to user, items are sorting by specific way
+Telegram bot that sends items from eBay to user, items are sorted by specific way
 # What does it do:
-When you search items on eBay you can't choose any parameter to filter sellers (for example, you want to see items from sellers which percent of positive feeback is upper 99), EbayItemsBot solves this problem.
+When you search items on eBay you can't choose any parameter to filter sellers (for example, you want to see items from sellers which percent of positive feedbacks is upper 99), EbayItemsBot solves this problem.
 
 # Features:
   - Bot can sort items from eBay by:
