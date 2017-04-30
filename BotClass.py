@@ -1,5 +1,5 @@
 import Utils
-from Utils import restart_handler, input_validation
+from Utils import error_handler, restart_handler, input_validation
 from Utils import Bunch
 from Utils import generate_markup
 import Settings
@@ -18,12 +18,14 @@ class Bot:
         pass
 
     # Main commands
+    @error_handler
     @bot.message_handler(commands=['start'])
     def start(message):
         markup = Settings.markup_home
         Bot.bot.send_message(message.chat.id, reply_markup=markup,
                                 text="Hello")
 
+    @error_handler
     @bot.message_handler(commands=['prog'])
     def progress(message):
         """Send progress to user"""
@@ -31,7 +33,7 @@ class Bot:
         request = Bot.request_dict[message.chat.id]
         Bot.bot.send_message(message.chat.id, request.progress)
 
-
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.changes)
     def process_next_changes(call):
         text = call.data
@@ -47,6 +49,7 @@ class Bot:
             pass
 
     # Handlers for main keyboard's buttons
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
     def load_main_menu(call):
         """Go back to the home page from search"""
@@ -54,6 +57,7 @@ class Bot:
                                   reply_markup=Settings.markup_home,
                                   text="Hello")
 
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
     def process_settings(call):
         """Permit user to change some parameters of request"""
@@ -61,26 +65,30 @@ class Bot:
                                   reply_markup=generate_markup(Settings.settings),
                                   text="Tap on the setting you'd like to change")
 
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
     def process_search(call):
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   text="What are you searching for")
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Result")
     def process_result(call):
         pass
 
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Help")
     def process_help(call):
         pass
 
-
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Back")
     def process_search(call):
         pass
 
     # Process request's parameters
+    @error_handler
     @restart_handler
     def process_keywords(message):
         chat_id = message.chat.id
@@ -91,6 +99,7 @@ class Bot:
         Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.sort_orders),
                          text="Please, choose the sort order")
 
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.sort_orders)
     def process_sort(call):
         chat_id = call.message.chat.id
@@ -99,6 +108,7 @@ class Bot:
         Bot.changes_detector(call, request, "Please, choose the sort order(sellers)",
                              generate_markup(Settings.sellers_sort_orders))
 
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.sellers_sort_orders)
     def process_sellers_sort(call):
         chat_id = call.message.chat.id
@@ -111,6 +121,7 @@ class Bot:
         markup.row(*buttons)
         Bot.changes_detector(call, request, "How high should be seller's score? ", markup)
 
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data[:6] == 'rating')
     def process_sellers_rating(call):
         chat_id = call.message.chat.id
@@ -123,7 +134,7 @@ class Bot:
         markup.row(*buttons)
         Bot.changes_detector(call, request, "How high should be number of seller's sold items", markup)
 
-
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data[:5] == 'solds')
     def process_sellers_rating(call):
         chat_id = call.message.chat.id
@@ -134,6 +145,7 @@ class Bot:
                              text="How many items do you want to see? Please, enter a number")
         Bot.bot.register_next_step_handler(call.message, Bot.process_num)
 
+    @error_handler
     @restart_handler
     @input_validation
     def process_num(message):
@@ -142,6 +154,7 @@ class Bot:
         request.num = int(message.text)
         Bot.send_results(message, request)
 
+    @error_handler
     @restart_handler
     def send_results(message, request):
         helper = EbayApiHelper(request.keywords, request)
@@ -155,7 +168,7 @@ class Bot:
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
 
-
+    @error_handler
     @bot.callback_query_handler(func=lambda call: True)
     def process_settings0(call):
         """Get the name of parameter user'd like to change"""

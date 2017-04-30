@@ -12,30 +12,36 @@ class Bunch:
 
 
 def restart_handler(func):
-    """Handle errors and fix issue with multiple dialogs"""
+    """Fix issue with multiple dialogs"""
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        # Check if args start with '__main__.Bot' or message
+        index = 0
         try:
-            # Check if args start with '__main__.Bot' or message
-            index = 0
-            try:
-                message = args[0]
-                text = message.text
-            except:
-                index = 1
-                print(args[1])
-                message = args[1]
-                text = message.text
+            message = args[0]
+            text = message.text
+        except:
+            index = 1
+            print(args[1])
+            message = args[1]
+            text = message.text
 
-            # So nothing because another one bot will handle '/start'
-            if text == '/start':
-                return
-            return func(*args[index:], **kwargs)
+        # So nothing because another one bot will handle '/start'
+        if text == '/start':
+            return
+        return func(*args[index:], **kwargs)
+    return wrapper
+
+def error_handler(func):
+    """Handle errors"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
         except Exception as e:
             raise e
     return wrapper
-
 
 def input_validation(func):
     """Checks if the message.text isdigit or not"""
