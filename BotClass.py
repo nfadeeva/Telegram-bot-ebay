@@ -1,8 +1,8 @@
-import utils
-from utils import error_handler, input_validation
-from utils import Bunch
-from utils import generate_markup
-import settings
+import Utils
+from Utils import error_handler, input_validation
+from Utils import Bunch
+from Utils import generate_markup
+import Settings
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
 import random
@@ -12,15 +12,15 @@ from xml.dom import minidom
 
 class Bot:
     request_dict = {}
-    bot = utils.bot
+    bot = Utils.bot
 
     def __init__(self):
         pass
 
-    # main commands
+    # Main commands
     @bot.message_handler(commands=['start'])
     def start(message):
-        markup = settings.markup_home
+        markup = Settings.markup_home
         Bot.bot.send_message(message.chat.id, reply_markup=markup,
                                 text="Hello")
 
@@ -31,20 +31,20 @@ class Bot:
         request = Bot.request_dict[message.chat.id]
         Bot.bot.send_message(message.chat.id, request.progress)
 
-    # process changes in settings.py
+    # Process changes in Settings.py
     @error_handler
     def process_changes(call):
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(settings.changes),
+                                  reply_markup=generate_markup(Settings.changes),
                                   text="What do you want to do?")
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in settings.changes)
+    @bot.callback_query_handler(func=lambda call: call.data in Settings.changes)
     def process_next_changes(call):
         text = call.message.text
-        if (text == 'Another'):
+        if text == 'Another':
             Bot.process_settings(call)
-        elif (text == 'Get results'):
+        elif text == 'Get results':
             chat_id = call.message.chat.id
             request = Bot.request_dict[chat_id]
             Bot.send_results(call.message, request)
@@ -55,7 +55,7 @@ class Bot:
     def load_main_menu(call):
         """Go back to the home page from search"""
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=settings.markup_home,
+                                  reply_markup=Settings.markup_home,
                                   text="Hello")
 
     @error_handler
@@ -63,14 +63,13 @@ class Bot:
     def process_settings(call):
         """Permit user to change some parameters of request"""
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(settings.settings),
+                                  reply_markup=generate_markup(Settings.settings),
                                   text="Tap on the setting you'd like to change")
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
     def process_search(call):
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=types.InlineKeyboardMarkup().row(*settings.last_row),
                                   text="What are you searching for")
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
@@ -97,24 +96,24 @@ class Bot:
                         rating=None, progress=0, change=None)
         Bot.request_dict[chat_id] = request
         request.keywords = message.text
-        Bot.bot.reply_to(message, reply_markup=generate_markup(settings.sort_orders),
+        Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.sort_orders),
                          text="Please, choose the sort order")
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in settings.sort_orders)
+    @bot.callback_query_handler(func=lambda call: call.data in Settings.sort_orders)
     def process_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sort = call.message.text
         if not request.change:
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=generate_markup(settings.sellers_settings.sort_orders),
+                                      reply_markup=generate_markup(Settings.sellers_sort_orders),
                                       text="Please, choose the sort order(sellers)")
         else:
             Bot.bot.register_next_step_handler(call.message, Bot.process_changes)
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in settings.sellers_settings.sort_orders)
+    @bot.callback_query_handler(func=lambda call: call.data in Settings.sellers_sort_orders)
     def process_sellers_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
@@ -172,7 +171,7 @@ class Bot:
     @error_handler
     def send_results(message, request):
         helper = EbayApiHelper(request.keywords, request)
-        futures = helper.futures(settings.pages)
+        futures = helper.futures(Settings.pages)
         xmldocs = []
         for i in futures:
             xmldoc = minidom.parse(i.result())
@@ -196,8 +195,8 @@ class Bot:
         change = call.data
         request.change = True
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                   reply_markup=generate_markup(settings.markups[change]),
-                                   text="Tap")
+                                  reply_markup=generate_markup(Settings.markups[change]),
+                                  text="Tap")
 
 if __name__ == '__main__':
     random.seed()

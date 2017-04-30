@@ -1,5 +1,5 @@
 from telebot import types
-from utils import generate_inline_button
+from Utils import generate_inline_button
 sort_orders = ['BestMatch', 'PricePlusShippingLowest', 'None']
 sellers_sort_orders = ['Rating', 'FeedbackScore','None']
 settings = ['Keywords', 'Sort', 'Sellers', 'Solds', 'Rating']
