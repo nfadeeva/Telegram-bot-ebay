@@ -44,10 +44,14 @@ class Bot:
         elif text == 'Get results':
             chat_id = call.message.chat.id
             request = Bot.request_dict[chat_id]
-            Bot.send_results(call.message, request)
+            if request.keywords:
+                Bot.send_results(call.message, request)
+            else:
+                Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                          text="What are you searching for?")
+                Bot.bot.register_next_step_handler(call.message, Bot.process_changes_fin)
         else:
             pass
-
     # Handlers for main keyboard's buttons
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
@@ -141,8 +145,8 @@ class Bot:
         request = Bot.request_dict[chat_id]
         request.solds = call.data[6:]
         if not request.change:
-            Bot.bot.reply_to(call.message,
-                             text="How many items do you want to see? Please, enter a number")
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      text="How many items do you want to see? Please, enter a number")
         Bot.bot.register_next_step_handler(call.message, Bot.process_num)
 
     @error_handler
@@ -156,6 +160,18 @@ class Bot:
 
     @error_handler
     @restart_handler
+    def process_changes_fin(message):
+        chat_id = message.chat.id
+        request = Bot.request_dict[chat_id]
+        request.keywords = message.text
+        try:
+            request.num
+        except AttributeError as e:
+            request.num = 10
+        Bot.send_results(message, request)
+
+    @error_handler
+    @restart_handler
     def send_results(message, request):
         helper = EbayApiHelper(request.keywords, request)
         futures = helper.futures(Settings.pages)
@@ -164,7 +180,8 @@ class Bot:
             xmldoc = minidom.parse(i.result())
             xmldocs.append(xmldoc)
         parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
-        items = list(map(lambda x: x[0], parser.parse_request()))
+        result =  parser.parse_request()
+        items = result
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
 

@@ -23,7 +23,6 @@ def restart_handler(func):
             text = message.text
         except:
             index = 1
-            print(args[1])
             message = args[1]
             text = message.text
 
@@ -32,6 +31,7 @@ def restart_handler(func):
             return
         return func(*args[index:], **kwargs)
     return wrapper
+
 
 def error_handler(func):
     """Handle errors"""
@@ -42,6 +42,7 @@ def error_handler(func):
         except Exception as e:
             raise e
     return wrapper
+
 
 def input_validation(func):
     """Checks if the message.text isdigit or not"""

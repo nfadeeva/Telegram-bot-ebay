@@ -20,6 +20,7 @@ class ResponseParser(object):
         return res
 
     def parse_request(self):
+        items = self.parse_xml('viewItemURL')
         if self.__sort:
             urls = self.parse_xml('viewItemURL')
             scores = self.parse_xml('feedbackScore')
@@ -27,17 +28,18 @@ class ResponseParser(object):
             fixed = self.parse_xml('listingType')
             # to avoid duplicates because of reload pages while making request
             items = list(zip(urls,scores,rating,fixed))
-            # api doesn't work, so filter items by myself
-            #items = filter(lambda x: x[3]=='FixedPrice',items)
             items = list(OrderedDict.fromkeys(items))
             items.sort(key = lambda x: x[1], reverse=True)
-        if self.__score.isdigit():
+        if self.__score:
             items = list(filter(lambda x: float(x[2]) >= int(self.__score), items))
-        if self.__solds.isdigit():
+        if self.__solds:
             items = list(filter(lambda x: int(x[1]) >= int(self.__solds), items))
         # WILL BE FIXED
         else:
-            return self.parse_xml('viewItemURL')
+            none = [None]*len(items)
+            items = list(zip(items, none, none, none))
+            print(items)
+            return items
         print(len(items))
         # print(items)
         return items
