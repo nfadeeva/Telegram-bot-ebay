@@ -36,6 +36,7 @@ class Bot:
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.changes)
     def process_next_changes(call):
+        """What bot should to do after changing settings"""
         text = call.data
         if text == 'Change another one setting':
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
@@ -47,16 +48,19 @@ class Bot:
             if request.keywords:
                 Bot.send_results(call.message, request)
             else:
+                markup = types.ForceReply(selective = False)
                 Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                           text="What are you searching for?")
                 Bot.bot.register_next_step_handler(call.message, Bot.process_changes_fin)
         else:
             pass
+
     # Handlers for main keyboard's buttons
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
     def load_main_menu(call):
         """Go back to the home page from search"""
+
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=Settings.markup_home,
                                   text="Hello")
@@ -65,6 +69,10 @@ class Bot:
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
     def process_settings(call):
         """Permit user to change some parameters of request"""
+        
+        request = Bot.request_dict[call.message.chat.id]
+        #s = request.sellers+request.solds
+        Bot.bot.send_message(chat_id = call.message.chat.id, text="Your settings is")
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=generate_markup(Settings.settings),
                                   text="Tap on the setting you'd like to change")
@@ -72,8 +80,10 @@ class Bot:
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
     def process_search(call):
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  text="What are you searching for")
+        markup = types.InlineKeyboardMarkup()
+        markup.row(*Settings.last_row)
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup,
+                                  text="What are you searching for?")
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
     @error_handler
@@ -167,6 +177,7 @@ class Bot:
         try:
             request.num
         except AttributeError as e:
+            #if yous didn't enter a num of items
             request.num = 10
         Bot.send_results(message, request)
 
@@ -194,7 +205,7 @@ class Bot:
         if not request:
             request = Bunch(keywords=None, sort=None, sellers=None,
                             solds=None, rating=None, progress=0,
-                            change=None)
+                            change=None, num = 10)
             Bot.request_dict[chat_id] = request
         change = call.data
         request.change = True

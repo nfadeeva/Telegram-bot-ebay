@@ -38,8 +38,6 @@ class ResponseParser(object):
         else:
             none = [None]*len(items)
             items = list(zip(items, none, none, none))
-            print(items)
             return items
         print(len(items))
-        # print(items)
         return items
