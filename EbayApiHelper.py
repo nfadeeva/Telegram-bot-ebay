@@ -6,9 +6,7 @@ import concurrent.futures
 
 
 class EbayApiHelper(object):
-    """
-    Make xml request and get xml response
-    """
+    """Make xml request and get response from eBay"""
 
     def __init__(self, keywords, request, sort=None, page='1'):
 
@@ -17,17 +15,15 @@ class EbayApiHelper(object):
                    'X-EBAY-SOA-SECURITY-APPNAME': config.key,
                    'Content-Type': 'text/xml'}
         self.__output_selector = ['SellerInfo']
-        self.__itemFilter = {'name': 'listingType', 'value': 'FixedPrice'}
-
+        self.__item_filter = {'name': 'listingType', 'value': 'FixedPrice'}
         self.__keywords = keywords
         self.__sort = sort
         self.__request = request
 
-    def create_xml(self, page):
-        """
-        returns xml request
-        """
-        keywords = self.__keywords;
+    def create_xml(self, page_num):
+        """Returns request in xml format"""
+
+        keywords = self.__keywords
         root = ET.Element("findItemsByKeywords",
                              xmlns="http://www.ebay.com/marketplace/search/v1/services")
 
@@ -35,34 +31,35 @@ class EbayApiHelper(object):
         keywords_elem.text = keywords
 
         # itemFilter is a dict
-        if self.__itemFilter:
+        if self.__item_filter:
             item_filter_elem = ET.SubElement(root, "itemFilter")
-            for key in self.__itemFilter:
+            for key in self.__item_filter:
                 key_elem = ET.SubElement(item_filter_elem, key)
-                key_elem.text = self.__itemFilter[key]
+                key_elem.text = self.__item_filter[key]
 
         # outputSelector is a list
         if self.__output_selector:
             for item in self.__output_selector:
-                outputSelector_elem = ET.SubElement(root, "outputSelector")
-                outputSelector_elem.text = item
+                output_selector_elem = ET.SubElement(root, "outputSelector")
+                output_selector_elem.text = item
 
         # paginationInput is a dict
-        pagination_input = {'entriesPerPage': '100', 'pageNumber': page}
+        pagination_input = {'entriesPerPage': '100', 'pageNumber': page_num}
         if pagination_input:
             pagination_input_elem = ET.SubElement(root, "paginationInput")
             for key in pagination_input:
                 key_elem = ET.SubElement(pagination_input_elem, key)
                 key_elem.text = pagination_input[key]
 
-        # sortOrder is a str
+        # sortOrder is a string
         if self.__sort:
             sort_elem = ET.SubElement(root, "sortOrder")
             sort_elem.text = self.__sort
         return ET.tostring(root).decode("utf-8")
-    
-    # Parallel request's post
+
     def futures(self, pages):
+        """Parallel request's post"""
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = {executor.submit(self.request, page, pages): page for page in range(1, pages)}
         return futures
