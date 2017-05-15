@@ -15,24 +15,27 @@ class Bot:
     bot = Utils.bot
 
     # Main commands
+
+    # !
     @error_handler
     @bot.message_handler(commands=['start'])
     def start(message):
         markup = Settings.markup_home
         Bot.bot.send_message(message.chat.id, reply_markup=markup,
                                 text="Hello \U0001f604")
+
     @error_handler
-    @bot.message_handler(commands=['prog'])
-    def progress(message):
+    @bot.callback_query_handler(func=lambda call: call.data == "Progress")
+    def send_progress(call):
         """Send progress to user"""
 
-        request = Bot.request_dict[message.chat.id]
-        Bot.bot.send_message(message.chat.id, request.progress)
+        request = Bot.request_dict[call.message.chat.id]
+        Bot.bot.send_message(call.message.chat.id, request.progress)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.CHANGES)
     def process_next_changes(call):
-        """What bot should to do after changing SETTINGS"""
+        """What bot should to do after changing settings"""
 
         text = call.data
         chat_id = call.message.chat.id
@@ -42,12 +45,13 @@ class Bot:
                                       reply_markup=generate_markup(Settings.SETTINGS),
                                       text="Tap on the setting you'd like to change")
         elif text == 'Get results':
+            request.change = False
             if request.keywords:
                 Bot.send_results(call.message, request)
             else:
-                markup = types.ForceReply(selective = False)
-                Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                          text="What are you searching for?")
+                Bot.bot.send_message(chat_id=call.message.chat.id,
+                                     reply_markup = types.ForceReply(selective = False),
+                                     text="What are you searching for?")
                 Bot.bot.register_next_step_handler(call.message, Bot.process_changes_fin)
         else:
             request.change = False
@@ -79,8 +83,9 @@ class Bot:
     def process_search(call):
         markup = types.InlineKeyboardMarkup()
         markup.row(*Settings.last_row)
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup,
-                                  text="What are you searching for?")
+        Bot.bot.send_message(chat_id=call.message.chat.id,
+                             reply_markup=types.ForceReply(selective=False),
+                             text="What are you searching for?")
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
     @error_handler
@@ -146,18 +151,39 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.solds = call.data[6:]
+        markup = types.InlineKeyboardMarkup()
+        buttons = []
+        for i in [1, 2, 3, 4, 5, 6, 7, 8]:
+            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="progress" + str(i)))
+        markup.row(*buttons)
         if not request.change:
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      reply_markup = markup,
                                       text="How many items do you want to see? Please, enter a number")
         Bot.bot.register_next_step_handler(call.message, Bot.process_num)
 
     @error_handler
     @restart_handler
-    @input_validation
-    def process_num(message):
-        request = Bot.request_dict[message.chat.id]
-        request.num = int(message.text)
-        Bot.send_results(message, request)
+    @bot.callback_query_handler(func=lambda call: call.data[:8] == 'progress')
+    def process_num(call):
+        request = Bot.request_dict[call.message.chat.id]
+        request.num = int(call.data[8:])
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup = Settings.progress_button,
+                                  text="Please, wait...")
+        Bot.send_results(call.message, request)
+
+
+    # @error_handler
+    # @restart_handler
+    # @input_validation
+    # def process_num(message):
+    #     request = Bot.request_dict[message.chat.id]
+    #     request.num = int(message.text)
+    #     Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
+    #                               reply_markup = Settings.progress_button,
+    #                               text="Please, wait...")
+    #     Bot.send_results(message, request)
 
     @error_handler
     @restart_handler

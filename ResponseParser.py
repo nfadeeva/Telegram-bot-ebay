@@ -26,7 +26,7 @@ class ResponseParser(object):
             scores = self.parse_xml('feedbackScore')
             rating = self.parse_xml('positiveFeedbackPercent')
             fixed = self.parse_xml('listingType')
-            # to avoid duplicates because of reload PAGES while making request
+            # to avoid duplicates because of reload pages while making request
             items = list(zip(urls,scores,rating,fixed))
             items = list(OrderedDict.fromkeys(items))
             items.sort(key = lambda x: x[1], reverse=True)

@@ -8,7 +8,8 @@ smiles = {"Search": "\U0001F50E",
           "Result": "\U0001F6CD",
           "Settings": "\U0001F527",
           "Help": "\U00002753",
-          "Item": "\U0001F535"
+          "Item": "\U0001F535",
+          "Progress": "\U000023F3"
           }
 
 class Bunch:

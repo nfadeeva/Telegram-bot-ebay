@@ -6,7 +6,7 @@ SETTINGS = ['Keywords', 'Sort', 'Sellers', 'Solds', 'Rating']
 CHANGES = ['Get results', 'Change another one setting', 'Accept CHANGES']
 MARKUPS = {'Sort': SORT_ORDERS, 'Sellers': SELLERS_SORT_ORDERS}
 PAGES = 100
-NUM = 10 # default number of items in result
+NUM = 10  # default number of items in result
 
 
 markup_home = types.InlineKeyboardMarkup()
@@ -18,3 +18,5 @@ markup_home.row(generate_inline_button("Help"),
 last_row = generate_inline_button("Main Menu"), \
            generate_inline_button("Help")
 
+progress_button = types.InlineKeyboardMarkup()
+progress_button.row(generate_inline_button("Progress"))
