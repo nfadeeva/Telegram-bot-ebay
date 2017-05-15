@@ -14,17 +14,13 @@ class Bot:
     request_dict = {}
     bot = Utils.bot
 
-    def __init__(self):
-        pass
-
     # Main commands
     @error_handler
     @bot.message_handler(commands=['start'])
     def start(message):
         markup = Settings.markup_home
         Bot.bot.send_message(message.chat.id, reply_markup=markup,
-                                text="Hello")
-
+                                text="Hello \U0001f604")
     @error_handler
     @bot.message_handler(commands=['prog'])
     def progress(message):
@@ -34,17 +30,18 @@ class Bot:
         Bot.bot.send_message(message.chat.id, request.progress)
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in Settings.changes)
+    @bot.callback_query_handler(func=lambda call: call.data in Settings.CHANGES)
     def process_next_changes(call):
-        """What bot should to do after changing settings"""
+        """What bot should to do after changing SETTINGS"""
+
         text = call.data
+        chat_id = call.message.chat.id
+        request = Bot.request_dict[chat_id]
         if text == 'Change another one setting':
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=generate_markup(Settings.settings),
+                                      reply_markup=generate_markup(Settings.SETTINGS),
                                       text="Tap on the setting you'd like to change")
         elif text == 'Get results':
-            chat_id = call.message.chat.id
-            request = Bot.request_dict[chat_id]
             if request.keywords:
                 Bot.send_results(call.message, request)
             else:
@@ -53,7 +50,7 @@ class Bot:
                                           text="What are you searching for?")
                 Bot.bot.register_next_step_handler(call.message, Bot.process_changes_fin)
         else:
-            pass
+            request.change = False
 
     # Handlers for main keyboard's buttons
     @error_handler
@@ -69,12 +66,12 @@ class Bot:
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
     def process_settings(call):
         """Permit user to change some parameters of request"""
-        
+
         request = Bot.request_dict[call.message.chat.id]
         #s = request.sellers+request.solds
-        Bot.bot.send_message(chat_id = call.message.chat.id, text="Your settings is")
+        Bot.bot.send_message(chat_id = call.message.chat.id, text="Your SETTINGS is")
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(Settings.settings),
+                                  reply_markup=generate_markup(Settings.SETTINGS),
                                   text="Tap on the setting you'd like to change")
 
     @error_handler
@@ -96,12 +93,7 @@ class Bot:
     def process_help(call):
         pass
 
-    @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data == "Back")
-    def process_search(call):
-        pass
-
-    # Process request's parameters
+    # Create new request
     @error_handler
     @restart_handler
     def process_keywords(message):
@@ -110,20 +102,20 @@ class Bot:
                         rating=None, progress=0, change=None)
         Bot.request_dict[chat_id] = request
         request.keywords = message.text
-        Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.sort_orders),
+        Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.SORT_ORDERS),
                          text="Please, choose the sort order")
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in Settings.sort_orders)
+    @bot.callback_query_handler(func=lambda call: call.data in Settings.SORT_ORDERS)
     def process_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.sort = call.message.text
         Bot.changes_detector(call, request, "Please, choose the sort order(sellers)",
-                             generate_markup(Settings.sellers_sort_orders))
+                             generate_markup(Settings.SELLERS_SORT_ORDERS))
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in Settings.sellers_sort_orders)
+    @bot.callback_query_handler(func=lambda call: call.data in Settings.SELLERS_SORT_ORDERS)
     def process_sellers_sort(call):
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
@@ -163,67 +155,64 @@ class Bot:
     @restart_handler
     @input_validation
     def process_num(message):
-        chat_id = message.chat.id
-        request = Bot.request_dict[chat_id]
+        request = Bot.request_dict[message.chat.id]
         request.num = int(message.text)
         Bot.send_results(message, request)
 
     @error_handler
     @restart_handler
     def process_changes_fin(message):
-        chat_id = message.chat.id
-        request = Bot.request_dict[chat_id]
+        request = Bot.request_dict[message.chat.id]
         request.keywords = message.text
-        try:
-            request.num
-        except AttributeError as e:
-            #if yous didn't enter a num of items
-            request.num = 10
         Bot.send_results(message, request)
 
     @error_handler
     @restart_handler
     def send_results(message, request):
+        request.progress = 0
         helper = EbayApiHelper(request.keywords, request)
-        futures = helper.futures(Settings.pages)
+        futures = helper.futures(Settings.PAGES)
         xmldocs = []
         for i in futures:
             xmldoc = minidom.parse(i.result())
             xmldocs.append(xmldoc)
         parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
-        result =  parser.parse_request()
+        result = parser.parse_request()
         items = result
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: True)
-    def process_settings0(call):
+    def process_change_settings(call):
         """Get the name of parameter user'd like to change"""
+
+
         chat_id = call.message.chat.id
         request = Bot.request_dict.get(chat_id)
         if not request:
             request = Bunch(keywords=None, sort=None, sellers=None,
                             solds=None, rating=None, progress=0,
-                            change=None, num = 10)
+                            change=None, num=Settings.NUM)
             Bot.request_dict[chat_id] = request
         change = call.data
         request.change = True
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=generate_markup(Settings.markups[change]),
+                                  reply_markup=generate_markup(Settings.MARKUPS[change]),
                                   text="Tap")
     @classmethod
     def changes_detector(cls, call, request, text, markup):
         if not request.change:
             cls.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                              reply_markup=markup,
-                              text=text)
+                                      reply_markup=markup,
+                                      text=text)
         else:
-            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=generate_markup(Settings.changes),
+            cls.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      reply_markup=generate_markup(Settings.CHANGES),
                                       text="What do you want to do?")
 
 if __name__ == '__main__':
     random.seed()
     Bot = Bot()
+    Bot.bot.remove_webhook()
     Bot.bot.polling(none_stop=True)
