@@ -12,6 +12,7 @@ smiles = {"Search": "\U0001F50E",
           "Progress": "\U000023F3"
           }
 
+
 class Bunch:
     """A dictionary that supports attribute-style access"""
 
@@ -62,14 +63,16 @@ def input_validation(func):
         if not num.isdigit():
             message = bot.reply_to(message,
                                        text="Please, enter a number")
-            bot.register_next_step_handler(message, restart_handler(input_validation(func)))
+            bot.register_next_step_handler(message,
+                                           restart_handler(input_validation(func)))
             return
         return func(*args, **kwargs)
     return wrapper
 
 
 def generate_inline_button(label):
-    return types.InlineKeyboardButton(text=label + " " + smiles[label], callback_data=label)
+    return types.InlineKeyboardButton(text=label + " " + smiles[label],
+                                      callback_data=label)
 
 
 def generate_markup(items):
@@ -79,6 +82,6 @@ def generate_markup(items):
     if items:
         markup = types.InlineKeyboardMarkup()
         for i in items:
-            markup.add(types.InlineKeyboardButton(text=i,callback_data=i))
+            markup.add(types.InlineKeyboardButton(text=i, callback_data=i))
         markup.row(*last_row)
     return markup

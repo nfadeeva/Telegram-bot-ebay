@@ -40,12 +40,12 @@ class Bot:
         text = call.data
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
+        request.change = False
         if text == 'Change another one setting':
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                       reply_markup=generate_markup(Settings.SETTINGS),
                                       text="Tap on the setting you'd like to change")
         elif text == 'Get results':
-            request.change = False
             if request.keywords:
                 Bot.send_results(call.message, request)
             else:
@@ -71,7 +71,7 @@ class Bot:
     def process_settings(call):
         """Permit user to change some parameters of request"""
 
-        Bot.bot.send_message(chat_id = call.message.chat.id, text="Your SETTINGS is")
+        Bot.bot.send_message(chat_id = call.message.chat.id, text="Your settings: ")
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=generate_markup(Settings.SETTINGS),
                                   text="Tap on the setting you'd like to change")
@@ -108,20 +108,20 @@ class Bot:
         Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.SORT_ORDERS),
                          text="Please, choose the sort order")
 
-    @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in Settings.SORT_ORDERS)
-    def process_sort(call):
-        chat_id = call.message.chat.id
-        request = Bot.request_dict[chat_id]
-        request.sort = call.message.text
-        Bot.changes_detector(call, request, "Please, choose the sort order(sellers)",
-                             generate_markup(Settings.SELLERS_SORT_ORDERS))
+    # @error_handler
+    # @bot.callback_query_handler(func=lambda call: call.data in Settings.SORT_ORDERS)
+    # def process_sort(call):
+    #     chat_id = call.message.chat.id
+    #     request = Bot.request_dict[chat_id]
+    #     request.sort = call.message.text
+    #     Bot.changes_detector(call, request, "Please, choose the sort order(sellers)",
+    #                          generate_markup(Settings.SELLERS_SORT_ORDERS))
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data in Settings.SELLERS_SORT_ORDERS)
+    #@bot.callback_query_handler(func=lambda call: call.data in Settings.SELLERS_SORT_ORDERS)
+    @bot.callback_query_handler(func=lambda call: call.data in Settings.SORT_ORDERS)
     def process_sellers_sort(call):
-        chat_id = call.message.chat.id
-        request = Bot.request_dict[chat_id]
+        request = Bot.request_dict[call.message.chat.id]
         request.sellers = call.message.text
         markup = types.InlineKeyboardMarkup()
         buttons = []
@@ -167,7 +167,7 @@ class Bot:
         request = Bot.request_dict[call.message.chat.id]
         request.num = int(call.data[8:])
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup = Settings.progress_button,
+                                  reply_markup=Settings.progress_button,
                                   text="Please, wait...")
         Bot.send_results(call.message, request)
 
@@ -186,8 +186,7 @@ class Bot:
         futures = helper.futures(Settings.PAGES)
         xmldocs = []
         for i in futures:
-            xmldoc = minidom.parse(i.result())
-            xmldocs.append(xmldoc)
+            xmldocs.append(minidom.parse(i.result()))
         parser = ResponseParser(xmldocs, request.sellers, request.rating, request.solds)
         result = parser.parse_request()
         items = result
