@@ -71,8 +71,6 @@ class Bot:
     def process_settings(call):
         """Permit user to change some parameters of request"""
 
-        request = Bot.request_dict[call.message.chat.id]
-        #s = request.sellers+request.solds
         Bot.bot.send_message(chat_id = call.message.chat.id, text="Your SETTINGS is")
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=generate_markup(Settings.SETTINGS),
@@ -172,18 +170,6 @@ class Bot:
                                   reply_markup = Settings.progress_button,
                                   text="Please, wait...")
         Bot.send_results(call.message, request)
-
-
-    # @error_handler
-    # @restart_handler
-    # @input_validation
-    # def process_num(message):
-    #     request = Bot.request_dict[message.chat.id]
-    #     request.num = int(message.text)
-    #     Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
-    #                               reply_markup = Settings.progress_button,
-    #                               text="Please, wait...")
-    #     Bot.send_results(message, request)
 
     @error_handler
     @restart_handler
