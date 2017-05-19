@@ -9,9 +9,21 @@ smiles = {"Search": "\U0001F50E",
           "Settings": "\U0001F527",
           "Help": "\U00002753",
           "Item": "\U0001F535",
-          "Progress": "\U000023F3"
+          "Get progress": "\U000023F3"
           }
+SETTINGS = ['Keywords', 'Sort', 'Feedback', 'Rating']
 
+
+functions = {"Change another one setting": lambda call:
+              bot.edit_message_text(chat_id=call.message.chat.id,
+                  message_id=call.message.message_id,
+                  reply_markup=generate_markup(SETTINGS),
+                  text="Tap on the setting you'd like to change"),
+             "Search": lambda call:
+              bot.send_message(chat_id=call.message.chat.id,
+                                  reply_markup=types.ForceReply(selective=False),
+                                  text="What are you searching for?")
+             }
 
 class Bunch:
     """A dictionary that supports attribute-style access"""
@@ -85,3 +97,4 @@ def generate_markup(items):
             markup.add(types.InlineKeyboardButton(text=i, callback_data=i))
         markup.row(*last_row)
     return markup
+
