@@ -109,12 +109,12 @@ def generate_num_keyboard(start, end, text, type=None, next=None):
     first_button = types.InlineKeyboardButton(text="<<" + str(start), callback_data=label + str(start) + "<<")
     last_button = types.InlineKeyboardButton(text=str(end) + ">>", callback_data=label + str(end)+">>")
 
-    if type == "Right":
+    if type == "Left":
         for i in range(start, start + 3):
             buttons.append(types.InlineKeyboardButton(text=str(i), callback_data=text + str(i)))
         buttons.append(types.InlineKeyboardButton(text=str(start + 3) + ">", callback_data=label + str(start + 3)))
         buttons.append(last_button)
-    elif type == "Left":
+    elif type == "Right":
         buttons.append(first_button)
         buttons.append(types.InlineKeyboardButton(text="<" + str(end - 3), callback_data=label + str(end - 3) + "<"))
         for i in range(end - 2, end + 1):
@@ -136,19 +136,19 @@ def change_markup(markup, data, text):
     nums = list(map(lambda x: int(x['text'].strip("<>")), markups_dict))
     start, end = nums[0], nums[-1]
     if "<<" in data:
-        return generate_num_keyboard(start, end, text, type="Right")
-    if ">>" in data:
         return generate_num_keyboard(start, end, text, type="Left")
+    if ">>" in data:
+        return generate_num_keyboard(start, end, text, type="Right")
     elif "<" in data:
         if not nums[1] == start+1:
             return generate_num_keyboard(start, end, text, next=nums[1]-1)
         else:
-            return generate_num_keyboard(start, end, text, type="Right")
+            return generate_num_keyboard(start, end, text, type="Left")
     else:
         if not nums[-2] == end-1:
             return generate_num_keyboard(start, end, text, next=nums[1]+1)
         else:
-            return generate_num_keyboard(start, end, text, type="Left")
+            return generate_num_keyboard(start, end, text, type="Right")
 
 
 def change_num_keyword(request, label, call):
@@ -156,3 +156,17 @@ def change_num_keyword(request, label, call):
     bot.edit_message_reply_markup(chat_id=call.message.chat.id,
                                   message_id=call.message.message_id,
                                   reply_markup=request.markups[label])
+
+
+def changes_detector(call, request, text, markup):
+    if not request.change:
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=markup,
+                                  text=text)
+    else:
+        CHANGES = ['Get results', 'Change another one setting', 'Accept changes']
+        bot.edit_message_text(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=generate_markup(CHANGES),
+                                  text="What do you want to do?")
