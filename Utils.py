@@ -149,24 +149,3 @@ def change_markup(markup, data, text):
             return generate_num_keyboard(start, end, text, next=nums[1]+1)
         else:
             return generate_num_keyboard(start, end, text, type="Right")
-
-
-def change_num_keyword(request, label, call):
-    request.markups[label] = change_markup(request.markups[label], call.data, label)
-    bot.edit_message_reply_markup(chat_id=call.message.chat.id,
-                                  message_id=call.message.message_id,
-                                  reply_markup=request.markups[label])
-
-
-def changes_detector(call, request, text, markup):
-    if not request.change:
-        bot.edit_message_text(chat_id=call.message.chat.id,
-                                  message_id=call.message.message_id,
-                                  reply_markup=markup,
-                                  text=text)
-    else:
-        CHANGES = ['Get results', 'Change another one setting', 'Accept changes']
-        bot.edit_message_text(chat_id=call.message.chat.id,
-                                  message_id=call.message.message_id,
-                                  reply_markup=generate_markup(CHANGES),
-                                  text="What do you want to do?")

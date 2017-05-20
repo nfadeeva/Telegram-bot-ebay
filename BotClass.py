@@ -1,6 +1,6 @@
 import Utils
 from Utils import error_handler, restart_handler
-from Utils import Bunch
+from Request import Request
 import Settings
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
@@ -87,17 +87,13 @@ class Bot:
     def process_keywords(message):
         chat_id = message.chat.id
         request = Bot.request_dict.get(chat_id)
-        if request: #change = True
+        if request:
             request.keywords = message.text
-            CHANGES = ['Get results', 'Change another one setting', 'Accept changes']
             Bot.bot.send_message(chat_id=message.chat.id,
-                                  reply_markup=Utils.generate_markup(CHANGES),
-                                  text="What do you want to do?")
+                                 reply_markup=Settings.MARKUPS["Changes"],
+                                 text="What do you want to do?")
         else:
-            request = Bunch(keywords=None, sort=None, feedback=None,
-                        rating=None, progress=0, change=None,
-                        markups={Settings.LABELS['Rating']: Settings.RATING,
-                                 Settings.LABELS['Num']: Settings.NUM_KEYBOARD})
+            request = Request()
             Bot.request_dict[chat_id] = request
             request.keywords = message.text
             Bot.bot.reply_to(message, reply_markup=Settings.MARKUPS['Sort'],
@@ -108,7 +104,7 @@ class Bot:
     def process_sellers_sort(call):
         request = Bot.request_dict[call.message.chat.id]
         request.sellers = call.message.text
-        Utils.changes_detector(call, request, "How high should be seller's rating? ", Settings.RATING)
+        request.changes_detector(call, "How high should be seller's rating? ", Settings.RATING)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: Settings.LABELS['Rating'] in call.data)
@@ -118,8 +114,7 @@ class Bot:
             Utils.change_num_keyword(request, Settings.LABELS['Rating'], call)
         else:
             request.rating = call.data.split()[1]
-            Utils.changes_detector(call, request,
-                                   "How high should be number of seller's feedback?",
+            request.changes_detector(call, "How high should be number of seller's feedback?",
                                    Settings.MARKUPS['Feedback'])
 
     @error_handler
@@ -128,8 +123,7 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.feedback = call.data.split()[1]
-        Utils.changes_detector(call, request,
-                                   "How many items do you want to see?",
+        request.changes_detector(call, "How many items do you want to see?",
                                    Settings.MARKUPS['Num'])
 
     @error_handler
@@ -177,9 +171,7 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict.get(chat_id)
         if not request:
-            request = Bunch(keywords=None, sort=None,
-                            solds=None, rating=None, progress=0,
-                            change=None, num=Settings.NUM)
+            request = Request()
             Bot.request_dict[chat_id] = request
         change = call.data
         request.change = True
@@ -188,10 +180,9 @@ class Bot:
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=markup,
                                   text="Change setting")
-        else: #change_keywords
+        else:
             Utils.functions["Search"](call)
             Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
-
 
 
 if __name__ == '__main__':
