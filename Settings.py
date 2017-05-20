@@ -31,4 +31,5 @@ RATING = generate_num_keyboard(0, 100, LABELS["Rating"], next=1)
 NUM_KEYBOARD = generate_num_keyboard(1, 20,  LABELS["Num"], next=2)
 
 MARKUPS = {'Sort': generate_markup(SORT_ORDERS), 'Settings': generate_markup(SETTINGS),
-           'Feedback': FEEDBACK, 'Num': NUM_KEYBOARD, 'Rating': RATING}
+           'Feedback': FEEDBACK, 'Num': NUM_KEYBOARD, 'Rating': RATING,
+           'Changes': generate_markup(CHANGES)}

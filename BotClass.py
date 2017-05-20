@@ -86,13 +86,21 @@ class Bot:
     @restart_handler
     def process_keywords(message):
         chat_id = message.chat.id
-        request = Bunch(keywords=None, sort=None, feedback=None,
+        request = Bot.request_dict.get(chat_id)
+        if request: #change = True
+            request.keywords = message.text
+            CHANGES = ['Get results', 'Change another one setting', 'Accept changes']
+            Bot.bot.send_message(chat_id=message.chat.id,
+                                  reply_markup=Utils.generate_markup(CHANGES),
+                                  text="What do you want to do?")
+        else:
+            request = Bunch(keywords=None, sort=None, feedback=None,
                         rating=None, progress=0, change=None,
                         markups={Settings.LABELS['Rating']: Settings.RATING,
                                  Settings.LABELS['Num']: Settings.NUM_KEYBOARD})
-        Bot.request_dict[chat_id] = request
-        request.keywords = message.text
-        Bot.bot.reply_to(message, reply_markup=Settings.MARKUPS['Sort'],
+            Bot.request_dict[chat_id] = request
+            request.keywords = message.text
+            Bot.bot.reply_to(message, reply_markup=Settings.MARKUPS['Sort'],
                          text="Please, choose the sort order")
 
     @error_handler
@@ -175,9 +183,14 @@ class Bot:
             Bot.request_dict[chat_id] = request
         change = call.data
         request.change = True
-        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=Settings.MARKUPS[change],
+        markup = Settings.MARKUPS.get(change)
+        if markup:
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  reply_markup=markup,
                                   text="Change setting")
+        else: #change_keywords
+            Utils.functions["Search"](call)
+            Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
 
 
