@@ -65,8 +65,6 @@ class Bot:
     def process_settings(call):
         """Permit user to change some parameters of request"""
 
-        request = Bot.request_dict[call.message.chat.id]
-        f = lambda x, y: y + str(x) + "/n" if x else ""
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=generate_markup(Settings.SETTINGS),
                                   text="Tap on the setting you'd like to change")
@@ -74,8 +72,6 @@ class Bot:
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
     def process_search(call):
-        markup = types.InlineKeyboardMarkup()
-        markup.row(*Settings.last_row)
         Utils.functions["Search"](call)
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
@@ -95,7 +91,7 @@ class Bot:
     def process_keywords(message):
         chat_id = message.chat.id
         request = Bunch(keywords=None, sort=None, feedback=None,
-                        rating=None, progress=0, change=None)
+                        rating=None, progress=0, change=None,  markups={"rating": Settings.RATING})
         Bot.request_dict[chat_id] = request
         request.keywords = message.text
         Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.SORT_ORDERS),
@@ -106,27 +102,27 @@ class Bot:
     def process_sellers_sort(call):
         request = Bot.request_dict[call.message.chat.id]
         request.sellers = call.message.text
-        markup = types.InlineKeyboardMarkup()
-        buttons = []
-        for i in [90, 95, 99, 100, None]:
-            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="rating " + str(i)))
-        markup.row(*buttons)
-        markup.row(*Settings.last_row)
+        markup = Settings.RATING
         Bot.changes_detector(call, request, "How high should be seller's rating? ", markup)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data[:6] == 'rating')
     def process_sellers_rating(call):
-        chat_id = call.message.chat.id
-        request = Bot.request_dict[chat_id]
+        request = Bot.request_dict[call.message.chat.id]
         request.rating = call.data[7:]
-        markup = types.InlineKeyboardMarkup()
-        buttons = []
-        for i in [100, 1000, 10000, None]:
-            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="feedback" + str(i)))
-        markup.row(*buttons)
-        markup.row(*Settings.last_row)
-        Bot.changes_detector(call, request, "How high should be number of seller's feedback?", markup)
+        if "keyboard" in call.data:
+            request.markups['rating'] = Utils.change_markup(request.markups['rating'], call.data, 'rating')
+            Bot.bot.edit_message_reply_markup(chat_id=call.message.chat.id,
+                                              message_id=call.message.message_id,
+                                              reply_markup=request.markups['rating'])
+        else:
+            markup = types.InlineKeyboardMarkup()
+            buttons = []
+            for i in [100, 1000, 10000, None]:
+                buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="feedback" + str(i)))
+            markup.row(*buttons)
+            markup.row(*Settings.last_row)
+            Bot.changes_detector(call, request, "How high should be number of seller's feedback?", markup)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data[:8] == 'feedback')
@@ -189,7 +185,7 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict.get(chat_id)
         if not request:
-            request = Bunch(keywords=None, sort=None, sellers=None,
+            request = Bunch(keywords=None, sort=None,
                             solds=None, rating=None, progress=0,
                             change=None, num=Settings.NUM)
             Bot.request_dict[chat_id] = request

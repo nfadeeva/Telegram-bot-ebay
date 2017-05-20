@@ -25,6 +25,7 @@ functions = {"Change another one setting": lambda call:
                                   text="What are you searching for?")
              }
 
+
 class Bunch:
     """A dictionary that supports attribute-style access"""
 
@@ -98,3 +99,53 @@ def generate_markup(items):
         markup.row(*last_row)
     return markup
 
+
+def generate_num_keyboard(start, end, text, type=None, next=None):
+    last_row = generate_inline_button("Main Menu"), \
+              generate_inline_button("Help")
+    markup = types.InlineKeyboardMarkup()
+    label = text + "keyboard"
+    buttons = []
+    first_button = types.InlineKeyboardButton(text="<<" + str(start), callback_data=label + str(start) + "<<")
+    last_button = types.InlineKeyboardButton(text=str(end) + ">>", callback_data=label + str(end)+">>")
+
+    if type == "Right":
+        for i in range(start, start + 3):
+            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data=text + str(i)))
+        buttons.append(types.InlineKeyboardButton(text=str(start + 3) + ">", callback_data=label + str(start + 3)))
+        buttons.append(last_button)
+    elif type == "Left":
+        buttons.append(first_button)
+        buttons.append(types.InlineKeyboardButton(text="<" + str(end - 3), callback_data=label + str(end - 3) + "<"))
+        for i in range(end - 2, end + 1):
+            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data=text + str(i)))
+    else:
+        buttons.append(first_button)
+        buttons.append(types.InlineKeyboardButton(text="<"+str(next), callback_data=label + "<"+str(next)))
+        buttons.append(types.InlineKeyboardButton(text=str(next+1), callback_data=text + str(next+1)))
+        buttons.append(types.InlineKeyboardButton(text=str(next+2) + ">", callback_data=label + str(next+2) + ">"))
+        buttons.append(last_button)
+
+    markup.row(*buttons)
+    markup.row(*last_row)
+    return markup
+
+
+def change_markup(markup, data, text):
+    markups_dict = markup.to_dic()['inline_keyboard'][0]
+    nums = list(map(lambda x: int(x['text'].strip("<>")), markups_dict))
+    start, end = nums[0], nums[-1]
+    if "<<" in data:
+        return generate_num_keyboard(start, end, text, type="Right")
+    if ">>" in data:
+        return generate_num_keyboard(start, end, text, type="Left")
+    elif "<" in data:
+        if not nums[1] == start+1:
+            return generate_num_keyboard(start, end, text, next=nums[1]-1)
+        else:
+            return generate_num_keyboard(start, end, text, type="Right")
+    else:
+        if not nums[-2] == end-1:
+            return generate_num_keyboard(start, end, text, next=nums[1]+1)
+        else:
+            return generate_num_keyboard(start, end, text, type="Left")
