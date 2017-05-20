@@ -91,7 +91,8 @@ class Bot:
     def process_keywords(message):
         chat_id = message.chat.id
         request = Bunch(keywords=None, sort=None, feedback=None,
-                        rating=None, progress=0, change=None,  markups={"rating": Settings.RATING})
+                        rating=None, progress=0, change=None,  markups={"rating": Settings.RATING,
+                                                                        "num": Settings.NUM_KEYBOARD})
         Bot.request_dict[chat_id] = request
         request.keywords = message.text
         Bot.bot.reply_to(message, reply_markup=generate_markup(Settings.SORT_ORDERS),
@@ -109,13 +110,10 @@ class Bot:
     @bot.callback_query_handler(func=lambda call: call.data[:6] == 'rating')
     def process_sellers_rating(call):
         request = Bot.request_dict[call.message.chat.id]
-        request.rating = call.data[7:]
         if "keyboard" in call.data:
-            request.markups['rating'] = Utils.change_markup(request.markups['rating'], call.data, 'rating')
-            Bot.bot.edit_message_reply_markup(chat_id=call.message.chat.id,
-                                              message_id=call.message.message_id,
-                                              reply_markup=request.markups['rating'])
+            Utils.change_num_keyword(request, 'rating', call)
         else:
+            request.rating = call.data[7:]
             markup = types.InlineKeyboardMarkup()
             buttons = []
             for i in [100, 1000, 10000, None]:
@@ -130,25 +128,23 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.feedback = call.data[8:]
-        markup = types.InlineKeyboardMarkup()
-        buttons = []
-        for i in [1, 2, 3, 4, 5, 6, 7, 8]:
-            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data="progress" + str(i)))
-        markup.row(*buttons)
-        markup.row(*Settings.last_row)
+        markup = Settings.NUM_KEYBOARD
         if not request.change:
             Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                       reply_markup=markup,
-                                      text="How many items do you want to see? Please, enter a number")
+                                      text="How many items do you want to see?")
         Bot.bot.register_next_step_handler(call.message, Bot.process_num)
 
     @error_handler
     @restart_handler
-    @bot.callback_query_handler(func=lambda call: call.data[:8] == 'progress')
+    @bot.callback_query_handler(func=lambda call: call.data[:3] == 'num')
     def process_num(call):
         request = Bot.request_dict[call.message.chat.id]
-        request.num = int(call.data[8:])
-        Bot.send_results(call.message, request)
+        if "keyboard" in call.data:
+            Utils.change_num_keyword(request, 'num', call)
+        else:
+            request.num = int(call.data[3:])
+            Bot.send_results(call.message, request)
 
     @error_handler
     @restart_handler

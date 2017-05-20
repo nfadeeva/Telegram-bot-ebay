@@ -21,3 +21,4 @@ progress_button = types.InlineKeyboardMarkup()
 progress_button.row(generate_inline_button("Get progress"))
 
 RATING = generate_num_keyboard(0, 100, "rating", next=1)
+NUM_KEYBOARD =  generate_num_keyboard(1, 20, "num", next=2)

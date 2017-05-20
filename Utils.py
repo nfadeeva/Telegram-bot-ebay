@@ -149,3 +149,10 @@ def change_markup(markup, data, text):
             return generate_num_keyboard(start, end, text, next=nums[1]+1)
         else:
             return generate_num_keyboard(start, end, text, type="Left")
+
+
+def change_num_keyword(request, label, call):
+    request.markups[label] = change_markup(request.markups[label], call.data, label)
+    bot.edit_message_reply_markup(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=request.markups[label])
