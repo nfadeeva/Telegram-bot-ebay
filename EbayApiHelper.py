@@ -1,5 +1,5 @@
 import requests
-from io import BytesIO
+import re
 import xml.etree.ElementTree as ET
 import config
 import concurrent.futures
@@ -63,21 +63,25 @@ class EbayApiHelper(object):
 
     def futures(self, pages):
         """Parallel request's post"""
+        pg = re.findall(r'<totalPages>(\d+)<',self.request(1,pages).decode())[0]
+        pages = min(int(pg),pages)
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = {executor.submit(self.request, page, pages): page for page in range(1, pages)}
+        self.__request.progress = 0
         return futures
+
 
     def request(self, page, pages):
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.create_xml(str(page)),
                           headers=self.__headers)
         self.send(pages)
-        return BytesIO(s.content)
+        return s.content
 
     def send(self, pages):
         self.lock.acquire()
-        self.__request.progress += int(1 / pages * 100)
+        self.__request.progress += (1 / pages * 100)
         bot.edit_message_text(chat_id=self.message.chat.id, message_id=self.message.message_id,
                               text="Please, wait...\n"
-                                   "{}% is done".format(self.__request.progress))
+                                   "{}% is done".format(int(self.__request.progress)))
         self.lock.release()
 

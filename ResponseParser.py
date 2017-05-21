@@ -1,13 +1,12 @@
 from collections import OrderedDict
-
+from itertools import zip_longest
 
 class ResponseParser(object):
     """Sort items received from eBay"""
 
-    def __init__(self, xmldocs, sort, score, solds):
-        self.__sort = sort
-        self.__score = score
-        self.__solds = solds
+    def __init__(self, xmldocs, rating, feedback):
+        self.__rating = rating
+        self.__feedback = feedback
         self.__xmldocs = xmldocs
 
     def parse_xml(self, tag):
@@ -20,24 +19,18 @@ class ResponseParser(object):
         return res
 
     def parse_request(self):
-        items = self.parse_xml('viewItemURL')
-        if self.__sort:
-            urls = self.parse_xml('viewItemURL')
-            scores = self.parse_xml('feedbackScore')
-            rating = self.parse_xml('positiveFeedbackPercent')
-            fixed = self.parse_xml('listingType')
-            # to avoid duplicates because of reload pages while making request
-            items = list(zip(urls,scores,rating,fixed))
-            items = list(OrderedDict.fromkeys(items))
-            items.sort(key = lambda x: x[1], reverse=True)
-        if self.__score:
-            items = list(filter(lambda x: float(x[2]) >= int(self.__score), items))
-        if self.__solds:
-            items = list(filter(lambda x: int(x[1]) >= int(self.__solds), items))
-        # WILL BE FIXED
-        else:
-            none = [None]*len(items)
-            items = list(zip(items, none, none, none))
-            return items
+        urls = self.parse_xml('viewItemURL')
+        scores = self.parse_xml('feedbackScore')
+        rating = self.parse_xml('positiveFeedbackPercent')
+        price = self.parse_xml('currentPrice')
+        shipping = self.parse_xml('shippingServiceCost')
+        titles = self.parse_xml('title')
+        # to avoid duplicates because of reload pages while making request
+        items = list(zip(urls, titles, rating, scores, price, shipping))
+        items = list(OrderedDict.fromkeys(items))
+        if self.__rating:
+            items = list(filter(lambda x: float(x[2]) >= int(self.__rating), items))
+        if self.__feedback:
+            items = list(filter(lambda x: int(x[3]) >= int(self.__feedback), items))
         print(len(items))
         return items

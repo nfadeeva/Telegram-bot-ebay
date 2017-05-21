@@ -1,11 +1,12 @@
 import Utils
 from Utils import error_handler, restart_handler
 from Request import Request
+import time
 import Settings
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
 import random
-import telebot
+from io import BytesIO
 from xml.dom import minidom
 
 
@@ -38,13 +39,18 @@ class Bot:
             else:
                 Utils.functions["Search"](call)
                 Bot.bot.register_next_step_handler(call.message, Bot.process_changes_fin)
+        else:
+            Bot.load_main_menu(call)
 
     # Handlers for main keyboard's buttons
+    @staticmethod
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
     def load_main_menu(call):
         """Go back to the home page from search"""
-
+        request = Bot.request_dict.get(call.message.chat.id)
+        if request:
+            request.change = False
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   reply_markup=Settings.markup_home,
                                   text="Hello")
@@ -65,11 +71,6 @@ class Bot:
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
     @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data == "Result")
-    def process_result(call):
-        pass
-
-    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Help")
     def process_help(call):
         pass
@@ -86,7 +87,7 @@ class Bot:
                                  reply_markup=Settings.MARKUPS["Changes"],
                                  text="What do you want to do?")
         else:
-            request = Request(chat_id=chat_id)
+            request = Request()
             Bot.request_dict[chat_id] = request
             request.keywords = message.text
             Bot.bot.reply_to(message, reply_markup=Settings.MARKUPS['Sort'],
@@ -96,8 +97,8 @@ class Bot:
     @bot.callback_query_handler(func=lambda call: call.data in Settings.SORT_ORDERS)
     def process_sellers_sort(call):
         request = Bot.request_dict[call.message.chat.id]
-        request.sellers = call.message.text
-        request.changes_detector(call, "How high should be seller's rating? ", Settings.RATING)
+        request.sort = call.data.replace(" ","")
+        request.changes_detector(call, "How high should be seller's positive ratings percentage? ", Settings.RATING)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: Settings.LABELS['Rating'] in call.data)
@@ -107,7 +108,7 @@ class Bot:
             request.change_num_keyword(Settings.LABELS['Rating'], call)
         else:
             request.rating = call.data.split()[1]
-            request.changes_detector(call, "How high should be number of seller's feedback?",
+            request.changes_detector(call, "How high should be seller's feedback rating?",
                                    Settings.MARKUPS['Feedback'])
 
     @error_handler
@@ -143,17 +144,21 @@ class Bot:
         Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
                                   text="Please, wait...\n0% is done")
         request.progress = 0
-        helper = EbayApiHelper(request.keywords, request, message)
+        helper = EbayApiHelper(request.keywords, request, request.sort, message)
         futures = helper.futures(Settings.PAGES)
         xmldocs = []
         for i in futures:
-            xmldocs.append(minidom.parse(i.result()))
-        parser = ResponseParser(xmldocs, request.sellers, request.rating, request.feedback)
+            xmldocs.append(minidom.parse(BytesIO(i.result())))
+        parser = ResponseParser(xmldocs, request.rating, request.feedback)
         items = parser.parse_request()
         Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
                                   text="DONE")
+        text = ''
         for item in items[:request.num]:
-            Bot.bot.send_message(message.chat.id, item)
+            text+=r'''<a href="{}">{}</a>'''.format(item[0],item[1][:30]+"...")+\
+                "\n<b>Rating: </b>{} points\n<b>Positive feedbacks: </b>{}%\n<b>Price: </b>{}$\n<b>Shipping: </b>{}$\n".format(item[3],item[2],item[4],item[5])+"\n"
+        Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
+                                  text=text, parse_mode='html', disable_web_page_preview = True)
         Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
                              text="Hello \U0001f604")
 
@@ -165,7 +170,7 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict.get(chat_id)
         if not request:
-            request = Request(chat_id=chat_id)
+            request = Request()
             Bot.request_dict[chat_id] = request
         change = call.data
         request.change = True

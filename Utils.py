@@ -5,11 +5,9 @@ import functools
 bot = telebot.TeleBot(config.token)  # Need to create bot here to use bot.'function'
 smiles = {"Search": "\U0001F50E",
           "Main Menu": "\U0001F3E0",
-          "Result": "\U0001F6CD",
           "Settings": "\U0001F527",
           "Help": "\U00002753",
-          "Item": "\U0001F535",
-          "Get progress": "\U000023F3"
+          "Item": "\U0001F535"
           }
 SETTINGS = ['Keywords', 'Sort', 'Feedback', 'Rating']
 
