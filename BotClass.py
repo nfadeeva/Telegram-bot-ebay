@@ -154,6 +154,10 @@ class Bot:
         Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
                                   text="DONE")
         text = ''
+        if not items:
+            Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
+                                      text="No items were found. Please, try another request")
+            return
         for item in items[:request.num]:
             text+=r'''<a href="{}">{}</a>'''.format(item[0],item[1][:30]+"...")+\
                 "\n<b>Rating: </b>{} points\n<b>Positive feedbacks: </b>{}%\n<b>Price: </b>{}$\n<b>Shipping: </b>{}$\n".format(item[3],item[2],item[4],item[5])+"\n"
