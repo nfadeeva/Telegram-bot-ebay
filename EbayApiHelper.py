@@ -4,11 +4,13 @@ import xml.etree.ElementTree as ET
 import config
 import concurrent.futures
 import threading
+from Utils import bot
+
 
 class EbayApiHelper(object):
     """Make xml request and get response from eBay"""
 
-    def __init__(self, keywords, request, message, sort=None):
+    def __init__(self, keywords, request, sort, message):
 
         self.__headers = {'X-EBAY-SOA-SERVICE-NAME': 'FindingService',
                    'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
@@ -20,6 +22,7 @@ class EbayApiHelper(object):
         self.__sort = sort
         self.__request = request
         self.message = message
+        self.lock = threading.Lock()
 
     def create_xml(self, page_num):
         """Returns request in xml format"""
@@ -67,9 +70,14 @@ class EbayApiHelper(object):
     def request(self, page, pages):
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.create_xml(str(page)),
                           headers=self.__headers)
-        lock = threading.Lock()
-        lock.acquire()
-        self.__request.progress += int(1/pages*100)
-        self.__request.update_progress(self.message)
-        lock.release()
+        self.send(pages)
         return BytesIO(s.content)
+
+    def send(self, pages):
+        self.lock.acquire()
+        self.__request.progress += int(1 / pages * 100)
+        bot.edit_message_text(chat_id=self.message.chat.id, message_id=self.message.message_id,
+                              text="Please, wait...\n"
+                                   "{}% is done".format(self.__request.progress))
+        self.lock.release()
+
