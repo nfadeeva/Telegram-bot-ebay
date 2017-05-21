@@ -3,12 +3,12 @@ from io import BytesIO
 import xml.etree.ElementTree as ET
 import config
 import concurrent.futures
-
+import threading
 
 class EbayApiHelper(object):
     """Make xml request and get response from eBay"""
 
-    def __init__(self, keywords, request, sort=None, page='1'):
+    def __init__(self, keywords, request, message, sort=None):
 
         self.__headers = {'X-EBAY-SOA-SERVICE-NAME': 'FindingService',
                    'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
@@ -19,6 +19,7 @@ class EbayApiHelper(object):
         self.__keywords = keywords
         self.__sort = sort
         self.__request = request
+        self.message = message
 
     def create_xml(self, page_num):
         """Returns request in xml format"""
@@ -59,7 +60,6 @@ class EbayApiHelper(object):
 
     def futures(self, pages):
         """Parallel request's post"""
-
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = {executor.submit(self.request, page, pages): page for page in range(1, pages)}
         return futures
@@ -67,5 +67,9 @@ class EbayApiHelper(object):
     def request(self, page, pages):
         s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.create_xml(str(page)),
                           headers=self.__headers)
+        lock = threading.Lock()
+        lock.acquire()
         self.__request.progress += int(1/pages*100)
+        self.__request.update_progress(self.message)
+        lock.release()
         return BytesIO(s.content)

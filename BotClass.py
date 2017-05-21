@@ -5,6 +5,7 @@ import Settings
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
 import random
+import telebot
 from xml.dom import minidom
 
 
@@ -20,14 +21,6 @@ class Bot:
     def start(message):
         Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
                              text="Hello \U0001f604")
-
-    @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data == "Get progress")
-    def send_progress(call):
-        """Send progress to user"""
-
-        request = Bot.request_dict[call.message.chat.id]
-        Bot.bot.send_message(call.message.chat.id, request.progress)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.CHANGES)
@@ -87,13 +80,13 @@ class Bot:
     def process_keywords(message):
         chat_id = message.chat.id
         request = Bot.request_dict.get(chat_id)
-        if request:
+        if request and request.change:
             request.keywords = message.text
             Bot.bot.send_message(chat_id=message.chat.id,
                                  reply_markup=Settings.MARKUPS["Changes"],
                                  text="What do you want to do?")
         else:
-            request = Request()
+            request = Request(chat_id=chat_id)
             Bot.request_dict[chat_id] = request
             request.keywords = message.text
             Bot.bot.reply_to(message, reply_markup=Settings.MARKUPS['Sort'],
@@ -111,7 +104,7 @@ class Bot:
     def process_sellers_rating(call):
         request = Bot.request_dict[call.message.chat.id]
         if "keyboard" in call.data:
-            Utils.change_num_keyword(request, Settings.LABELS['Rating'], call)
+            request.change_num_keyword(Settings.LABELS['Rating'], call)
         else:
             request.rating = call.data.split()[1]
             request.changes_detector(call, "How high should be number of seller's feedback?",
@@ -132,7 +125,7 @@ class Bot:
     def process_num(call):
         request = Bot.request_dict[call.message.chat.id]
         if "keyboard" in call.data:
-            Utils.change_num_keyword(request, Settings.LABELS['Num'], call)
+            request.change_num_keyword(Settings.LABELS['Num'], call)
         else:
             request.num = int(call.data.split()[1])
             Bot.send_results(call.message, request)
@@ -148,16 +141,17 @@ class Bot:
     @restart_handler
     def send_results(message, request):
         Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
-                                  reply_markup=Settings.progress_button,
-                                  text="Please, wait...")
+                                  text="Please, wait...\n0% is done")
         request.progress = 0
-        helper = EbayApiHelper(request.keywords, request)
+        helper = EbayApiHelper(request.keywords, request, message)
         futures = helper.futures(Settings.PAGES)
         xmldocs = []
         for i in futures:
             xmldocs.append(minidom.parse(i.result()))
         parser = ResponseParser(xmldocs, request.sellers, request.rating, request.feedback)
         items = parser.parse_request()
+        Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
+                                  text="DONE")
         for item in items[:request.num]:
             Bot.bot.send_message(message.chat.id, item)
         Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
@@ -171,13 +165,13 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict.get(chat_id)
         if not request:
-            request = Request()
+            request = Request(chat_id=chat_id)
             Bot.request_dict[chat_id] = request
         change = call.data
         request.change = True
         markup = Settings.MARKUPS.get(change)
         if markup:
-            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+            Bot.bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id,
                                   reply_markup=markup,
                                   text="Change setting")
         else:

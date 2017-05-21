@@ -66,23 +66,6 @@ def error_handler(func):
     return wrapper
 
 
-def input_validation(func):
-    """Checks if the message.text isdigit or not"""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        message = args[0]
-        num = message.text
-        if not num.isdigit():
-            message = bot.reply_to(message,
-                                       text="Please, enter a number")
-            bot.register_next_step_handler(message,
-                                           restart_handler(input_validation(func)))
-            return
-        return func(*args, **kwargs)
-    return wrapper
-
-
 def generate_inline_button(label):
     return types.InlineKeyboardButton(text=label + " " + smiles[label],
                                       callback_data=label)
@@ -106,24 +89,33 @@ def generate_num_keyboard(start, end, text, type=None, next=None):
     markup = types.InlineKeyboardMarkup()
     label = text + "keyboard"
     buttons = []
-    first_button = types.InlineKeyboardButton(text="<<" + str(start), callback_data=label + str(start) + "<<")
-    last_button = types.InlineKeyboardButton(text=str(end) + ">>", callback_data=label + str(end)+">>")
+    first_button = types.InlineKeyboardButton(text="<<" + str(start),
+                                              callback_data=label + str(start) + "<<")
+    last_button = types.InlineKeyboardButton(text=str(end) + ">>",
+                                             callback_data=label + str(end)+">>")
 
     if type == "Left":
         for i in range(start, start + 3):
-            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data=text + str(i)))
-        buttons.append(types.InlineKeyboardButton(text=str(start + 3) + ">", callback_data=label + str(start + 3)))
+            buttons.append(types.InlineKeyboardButton(text=str(i),
+                                                      callback_data=text + str(i)))
+        buttons.append(types.InlineKeyboardButton(text=str(start + 3) + ">",
+                                                  callback_data=label + str(start + 3)))
         buttons.append(last_button)
     elif type == "Right":
         buttons.append(first_button)
-        buttons.append(types.InlineKeyboardButton(text="<" + str(end - 3), callback_data=label + str(end - 3) + "<"))
+        buttons.append(types.InlineKeyboardButton(text="<" + str(end - 3),
+                                                  callback_data=label + str(end - 3) + "<"))
         for i in range(end - 2, end + 1):
-            buttons.append(types.InlineKeyboardButton(text=str(i), callback_data=text + str(i)))
+            buttons.append(types.InlineKeyboardButton(text=str(i),
+                                                      callback_data=text + str(i)))
     else:
         buttons.append(first_button)
-        buttons.append(types.InlineKeyboardButton(text="<"+str(next), callback_data=label + "<"+str(next)))
-        buttons.append(types.InlineKeyboardButton(text=str(next+1), callback_data=text + str(next+1)))
-        buttons.append(types.InlineKeyboardButton(text=str(next+2) + ">", callback_data=label + str(next+2) + ">"))
+        buttons.append(types.InlineKeyboardButton(text="<"+str(next),
+                                                  callback_data=label + "<"+str(next)))
+        buttons.append(types.InlineKeyboardButton(text=str(next+1),
+                                                  callback_data=text + str(next+1)))
+        buttons.append(types.InlineKeyboardButton(text=str(next+2) + ">",
+                                                  callback_data=label + str(next+2) + ">"))
         buttons.append(last_button)
 
     markup.row(*buttons)
@@ -140,12 +132,12 @@ def change_markup(markup, data, text):
     if ">>" in data:
         return generate_num_keyboard(start, end, text, type="Right")
     elif "<" in data:
-        if not nums[1] == start+1:
-            return generate_num_keyboard(start, end, text, next=nums[1]-1)
+        if not nums[1] == start + 1:
+            return generate_num_keyboard(start, end, text, next=nums[1] - 1)
         else:
             return generate_num_keyboard(start, end, text, type="Left")
     else:
-        if not nums[-2] == end-1:
-            return generate_num_keyboard(start, end, text, next=nums[1]+1)
+        if not nums[-2] == end - 1:
+            return generate_num_keyboard(start, end, text, next=nums[1] + 1)
         else:
             return generate_num_keyboard(start, end, text, type="Right")

@@ -17,9 +17,6 @@ markup_home.row(generate_inline_button("Help"),
 last_row = generate_inline_button("Main Menu"), \
            generate_inline_button("Help")
 
-progress_button = types.InlineKeyboardMarkup()
-progress_button.row(generate_inline_button("Get progress"))
-
 FEEDBACK = types.InlineKeyboardMarkup()
 buttons = []
 for i in [100, 1000, 10000, None]:
