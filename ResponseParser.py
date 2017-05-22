@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from collections import namedtuple
 
+
 class ResponseParser(object):
     """Sort items received from eBay"""
 
@@ -21,19 +22,19 @@ class ResponseParser(object):
     @property
     def items(self):
         urls = self.parse_xml('viewItemURL')
-        scores = self.parse_xml('feedbackScore')
+        feedback = self.parse_xml('feedbackScore')
         rating = self.parse_xml('positiveFeedbackPercent')
         price = self.parse_xml('currentPrice')
         shipping = self.parse_xml('shippingServiceCost')
         titles = self.parse_xml('title')
         imgs = self.parse_xml('galleryURL')
+        item = namedtuple('Item', ['url', 'title', 'feedback', 'rating', 'price', 'shipping', 'img'], verbose=True)
         # to avoid duplicates because of reload pages while making request
-        items = list(zip(urls, titles, rating, scores, price, shipping, imgs))
-        item = namedtuple('Item', ['url', 'title', 'rating', 'score', 'price', 'shipping', 'img'], verbose=True)
+        items = list(zip(urls, titles, feedback, rating, price, shipping, imgs))
         items = list(OrderedDict.fromkeys(items))
         items = map(lambda x: item(*x), items)
         if self.__rating:
             items = list(filter(lambda x: float(x.rating) >= int(self.__rating), items))
         if self.__feedback:
-            items = list(filter(lambda x: int(x.score) >= int(self.__feedback), items))
+            items = list(filter(lambda x: int(x.feedback) >= int(self.__feedback), items))
         return items

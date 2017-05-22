@@ -1,26 +1,27 @@
 import Utils
 from Utils import error_handler, restart_handler
 from Request import Request
-import time
 import Settings
 
 import random
 from telebot import types
 
 
-
 class Bot:
     request_dict = {}
     bot = Utils.bot
 
-    # Main commands
-
-    # !
+    @staticmethod
     @error_handler
     @bot.message_handler(commands=['start'])
     def start(message):
         Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
-                             text="Hello \U0001f604")
+                             text="Let's start!\n\n"
+                                  "You can get the list of items from eBay filtered by specific way!\n\n"
+                                  "In private chat you can see items from result of your request.\n"
+                                  "Just type @EbayItemsBot and any text, "
+                                  "press enter and see items from your last request"
+                             )
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data in Settings.CHANGES)
@@ -34,7 +35,9 @@ class Bot:
             Utils.functions[call.data](call)
         elif call.data == 'Get results':
             if request.keywords:
-                Bot.send_result(call.message, request)
+                request.message = call.message
+                request.get_result()
+                request.send_result()
             else:
                 Utils.functions["Search"](call)
                 Bot.bot.register_next_step_handler(call.message, Bot.process_changes_fin)
@@ -46,19 +49,20 @@ class Bot:
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
     def load_main_menu(call):
-        """Go back to the home page from search"""
-
         request = Bot.request_dict.get(call.message.chat.id)
         if request:
             request.change = False
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=Settings.markup_home,
-                                  text="Hello")
-
+                                  text="Let's start!\n\n"
+                                  "You can get the list of items from eBay filtered by specific way!\n\n"
+                                  "In private chat you can see items from result of your request.\n"
+                                  "Just type @EbayItemsBot and any text, "
+                                  "press enter and see items from your last request", reply_markup=Settings.markup_home)
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Result")
     def process_settings(call):
         """Permit user to change some parameters of request"""
+
         request = Bot.request_dict.get(call.message.chat.id)
         if request and request.pages:
             markup = Utils.generate_next_prev_keyboard(request.page, round(len(request.pages) / 4))
@@ -80,7 +84,7 @@ class Bot:
                                   text="<b>Keywords:</b> {}\n"
                                        "<b>Sort:</b> {}\n"
                                        "<b>Positive feedback:</b> {}%\n"
-                                       "<b>Rating:</b>{} points\n\nPlease, choose the option you'd like to change"
+                                       "<b>Rating:</b> {} points\n\nPlease, choose the option you'd like to change"
                                        .format(request.keywords, request.sort, request.rating, request.feedback),
                                   parse_mode='html')
 
@@ -89,11 +93,6 @@ class Bot:
     def process_search(call):
         Utils.functions["Search"](call)
         Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
-
-    @error_handler
-    @bot.callback_query_handler(func=lambda call: call.data == "Help")
-    def process_help(call):
-        pass
 
     # Create new request
     @error_handler
@@ -118,7 +117,8 @@ class Bot:
     def process_sellers_sort(call):
         request = Bot.request_dict[call.message.chat.id]
         request.sort = call.data
-        request.changes_detector(call, "How high should be seller's positive ratings percentage? ", Settings.RATING)
+        request.changes_detector(call, "How high should be seller's positive ratings percentage be? ",
+                                 Settings.MARKUPS['Positive Ratings Percentage'])
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: Settings.LABELS['Rating'] in call.data)
@@ -128,16 +128,21 @@ class Bot:
             request.change_num_keyword(Settings.LABELS['Rating'], call)
         else:
             request.rating = call.data.split()[1]
-            request.changes_detector(call, "How high should be seller's feedback rating?",
-                                   Settings.MARKUPS['Feedback'])
+            request.changes_detector(call, "How high should be seller's feedback rating be?",
+                                    Settings.MARKUPS['Feedback Rating'])
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: Settings.LABELS['Feedback'] in call.data)
     def process_sellers_rating(call):
-        chat_id = call.message.chat.id
-        request = Bot.request_dict[chat_id]
+        request = Bot.request_dict[call.message.chat.id]
         request.feedback = call.data.split()[1]
-        Bot.send_result(call.message, request)
+        request.message = call.message
+
+        if not request.change:
+            request.get_result()
+            request.send_result()
+        else:
+            Utils.functions["Change"](call)
 
     @error_handler
     @restart_handler
@@ -191,7 +196,7 @@ class Bot:
         for item in request.items[:30]:
             articles.append(types.InlineQueryResultArticle(
                 id=str(request.items.index(item)), title=item.title,
-                description="{} USD Shipping: {} USD".format(item.price,item.shipping),
+                description="{} USD Shipping: {} USD".format(item.price, item.shipping),
                 input_message_content=types.InputTextMessageContent(
                     message_text=Utils.make_page([item]), parse_mode='html'),
                 url=item.url, thumb_url=item.img, thumb_height=48, thumb_width=48

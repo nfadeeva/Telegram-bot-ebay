@@ -10,7 +10,8 @@ smiles = {"Search": "\U0001F50E",
           "Help": "\U00002753",
           "Item": "\U0001F535"
           }
-SETTINGS = ['Keywords', 'Sort', 'Feedback', 'Rating']
+SETTINGS = ['Keywords', 'Sort', 'Feedback Rating', 'Positive Ratings Percentage']
+CHANGES = ['Get results', 'Change another one setting', 'Accept changes']
 
 
 functions = {"Change another one setting": lambda call:
@@ -21,16 +22,13 @@ functions = {"Change another one setting": lambda call:
              "Search": lambda call:
               bot.send_message(chat_id=call.message.chat.id,
                                   reply_markup=types.ForceReply(selective=False),
-                                  text="What are you searching for?")
+                                  text="What are you searching for?"),
+             "Change": lambda call:
+             bot.edit_message_text(chat_id=call.message.chat.id,
+                                   message_id=call.message.message_id,
+                                   reply_markup=generate_markup(CHANGES),
+                                   text="What do you want to do?")
              }
-
-
-class Bunch:
-    """A dictionary that supports attribute-style access"""
-
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
 
 def restart_handler(func):
     """Fix issue with multiple dialogs"""
@@ -72,13 +70,12 @@ def generate_inline_button(label):
 
 def generate_markup(items):
     markup = None
-    last_row = generate_inline_button("Main Menu"), \
-               generate_inline_button("Help")
+    last_row = generate_inline_button("Main Menu")
     if items:
         markup = types.InlineKeyboardMarkup()
         for i in items:
             markup.add(types.InlineKeyboardButton(text=i, callback_data=i))
-        markup.row(*last_row)
+        markup.row(last_row)
     return markup
 
 
@@ -94,9 +91,8 @@ def generate_next_prev_keyboard(cur, end):
         markup.add(prev_btn)
     else:
         markup.row(prev_btn, next_btn)
-    last_row = generate_inline_button("Main Menu"), \
-               generate_inline_button("Help")
-    markup.row(*last_row)
+    last_row = generate_inline_button("Main Menu")
+    markup.row(last_row)
     return markup
 
 
@@ -104,16 +100,15 @@ def make_page(items):
     text = ''
     for item in items:
         text += r'''<a href="{}">{}</a>'''.format(item.url, item.title + "...") + \
-                "\n<b>Rating: </b>{} points\n" \
+                "\n<b>Feedback Rating: </b>{} points\n" \
                 "<b>Positive feedbacks: </b>{}%\n" \
                 "<b>Price: </b>{}$\n<b>" \
-                "Shipping: </b>{}$\n".format(item.score, item.rating, item.price, item.shipping) + "\n"
+                "Shipping: </b>{}$\n".format(item.feedback, item.rating, item.price, item.shipping) + "\n"
     return text
 
 
 def generate_num_keyboard(start, end, text, type=None, next=None):
-    last_row = generate_inline_button("Main Menu"), \
-              generate_inline_button("Help")
+    last_row = generate_inline_button("Main Menu")
     markup = types.InlineKeyboardMarkup()
     label = text + "keyboard"
     buttons = []
@@ -146,7 +141,7 @@ def generate_num_keyboard(start, end, text, type=None, next=None):
         buttons.append(last_button)
 
     markup.row(*buttons)
-    markup.row(*last_row)
+    markup.row(last_row)
     return markup
 
 
@@ -157,7 +152,7 @@ def change_markup(markup, data, text):
     type, next = None, None
     if "«" in data:
         type = "Left"
-    if "»" in data:
+    elif "»" in data:
         type = "Right"
     elif "‹" in data:
         if not nums[1] == start + 1:
