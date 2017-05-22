@@ -13,9 +13,9 @@ class EbayApiHelper(object):
     def __init__(self, keywords, request, sort, message):
 
         self.__headers = {'X-EBAY-SOA-SERVICE-NAME': 'FindingService',
-                   'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
-                   'X-EBAY-SOA-SECURITY-APPNAME': config.key,
-                   'Content-Type': 'text/xml'}
+                          'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
+                          'X-EBAY-SOA-SECURITY-APPNAME': config.key,
+                          'Content-Type': 'text/xml'}
         self.__output_selector = ['SellerInfo']
         self.__item_filter = {'name': 'listingType', 'value': 'FixedPrice'}
         self.__keywords = keywords
@@ -28,9 +28,7 @@ class EbayApiHelper(object):
         """Returns request in xml format"""
 
         keywords = self.__keywords
-        root = ET.Element("findItemsByKeywords",
-                             xmlns="http://www.ebay.com/marketplace/search/v1/services")
-
+        root = ET.Element("findItemsByKeywords", xmlns="http://www.ebay.com/marketplace/search/v1/services")
         keywords_elem = ET.SubElement(root, "keywords")
         keywords_elem.text = keywords
 
@@ -64,16 +62,16 @@ class EbayApiHelper(object):
     def futures(self, pages):
         """Parallel request's post"""
         real_num_pages = re.findall(r'<totalPages>(\d+)<',
-                                    self.request(1, pages).decode())[0] #detect how many pages were found
+                                    self.request(1, pages).decode())[0]
         pages = min(int(real_num_pages), pages)
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = {executor.submit(self.request, page, pages): page for page in range(1, pages)}
         self.__request.progress = 0
         return futures
 
-
     def request(self, page, pages):
-        s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1', data=self.create_xml(str(page)),
+        s = requests.post('http://svcs.ebay.com/services/search/FindingService/v1',
+                          data=self.create_xml(str(page)),
                           headers=self.__headers)
         self.send(pages)
         return s.content

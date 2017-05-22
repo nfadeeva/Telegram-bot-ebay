@@ -16,6 +16,7 @@ class Request:
         self.page = 0
         self.pages = None
         self.message = None
+        self.items = []
 
     def change_num_keyword(self, label, call):
         self.markups[label] = Utils.change_markup(self.markups[label], call.data, label)

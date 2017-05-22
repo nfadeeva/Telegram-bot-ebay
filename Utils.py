@@ -104,11 +104,11 @@ def generate_next_prev_keyboard(cur, end):
 def make_page(items):
     text = ''
     for item in items:
-        text += r'''<a href="{}">{}</a>'''.format(item[0], item[1][:30] + "...") + \
+        text += r'''<a href="{}">{}</a>'''.format(item.url, item.title[:30] + "...") + \
                 "\n<b>Rating: </b>{} points\n" \
                 "<b>Positive feedbacks: </b>{}%\n" \
                 "<b>Price: </b>{}$\n<b>" \
-                "Shipping: </b>{}$\n".format(item[3], item[2], item[4], item[5]) + "\n"
+                "Shipping: </b>{}$\n".format(item.score, item.rating, item.price, item.shipping) + "\n"
     return text
 
 

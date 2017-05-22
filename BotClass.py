@@ -6,6 +6,7 @@ import Settings
 from EbayApiHelper import EbayApiHelper
 from ResponseParser import ResponseParser
 import random
+from telebot import types
 from io import BytesIO
 from xml.dom import minidom
 
@@ -77,11 +78,13 @@ class Bot:
         """Permit user to change some parameters of request"""
         request = Bot.request_dict.get(call.message.chat.id, Request())
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      reply_markup=Settings.MARKUPS['Settings'],
-                                      text="<b>Keywords:</b> {}\n <b>Sort:</b> {}\n"
-                                      "<b>Positive feedbacks:</b> {}%\n<b>Rating:</b> {} points\n\n".format(request.keywords, request.sort, request.feedback, request.rating)+
-                                           "Please, choose the option you'd like to change",
-                                      parse_mode='html')
+                                  reply_markup=Settings.MARKUPS['Settings'],
+                                  text="<b>Keywords:</b> {}\n"
+                                       "<b>Sort:</b> {}\n"
+                                       "<b>Positive feedback:</b> {}%\n"
+                                       "<b>Rating:</b> {} points\n\nPlease, choose the option you'd like to change"
+                                       .format(request.keywords, request.sort, request.feedback, request.rating),
+                                  parse_mode='html')
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
@@ -171,6 +174,7 @@ class Bot:
         pages = list(map(Utils.make_page, items_split))
         request.pages = pages
         request.page = 0
+        request.items = items
         request.message = message
         Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=pages[0],
                                   parse_mode='html', disable_web_page_preview=True, reply_markup=markup)
@@ -214,11 +218,20 @@ class Bot:
             Utils.functions["Search"](call)
             Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
-    @error_handler
-    @bot.message_handler(func= lambda x: True)
-    def incorrect_message(message):
-        Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
-                             text="Hello \U0001f604")
+    @bot.inline_handler(lambda query: True)
+    def query_text(query):
+        request = Bot.request_dict.get(query.from_user.id, Request())
+        articles = []
+        for i in request.items[:30]:
+            articles.append(types.InlineQueryResultArticle(
+            id=str(request.items.index(i)), title=i.title,
+            description="{} USD Shipping: {} USD".format(i.price,i.shipping),
+            input_message_content=types.InputTextMessageContent(
+                message_text=Utils.make_page([i]), parse_mode='html'),
+                url=i.url,
+                thumb_url=i.img, thumb_height=48,thumb_width=48
+            ))
+        Bot.bot.answer_inline_query(query.id, articles)
 
 if __name__ == '__main__':
     random.seed()
