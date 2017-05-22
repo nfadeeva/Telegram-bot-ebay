@@ -16,6 +16,7 @@ class Bot:
         Bot.bot.send_message(message.chat.id, reply_markup=Utils.MARKUPS['Home'],
                              text="Let's start!\n\n" + Utils.HELP_TEXT)
 
+    @restart_handler
     @bot.callback_query_handler(func=lambda call: call.data in Utils.CHANGES)
     def process_next_changes(call):
         """What bot should to do after changing settings"""
@@ -38,7 +39,6 @@ class Bot:
 
     # Handlers for main keyboard's buttons
     @staticmethod
-
     @bot.callback_query_handler(func=lambda call: call.data == "Main Menu")
     def load_main_menu(call):
         request = Bot.request_dict.get(call.message.chat.id)
@@ -48,6 +48,7 @@ class Bot:
                                   text="Let's start!\n\n"+ Utils.HELP_TEXT,
                                   reply_markup=Utils.MARKUPS['Home'])
 
+    @restart_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Result")
     def process_result(call):
         """Permit user to change some parameters of request"""
@@ -63,6 +64,7 @@ class Bot:
                                       text="There is nothing to show, please, make request and see result here",
                                       disable_web_page_preview=True, reply_markup=Utils.MARKUPS['Home'])
 
+    @restart_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
     def process_settings(call):
         """Permit user to change some parameters of request"""
@@ -76,6 +78,7 @@ class Bot:
                                        .format(request.keywords, request.sort, request.rating, request.feedback),
                                   parse_mode='html')
 
+    @restart_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
     def process_search(call):
         Utils.FUNCTIONS["Search"](call)
@@ -152,6 +155,7 @@ class Bot:
                                   text=request.pages[cur], parse_mode='html',
                                   disable_web_page_preview=True, reply_markup=markup)
 
+    @restart_handler
     @bot.callback_query_handler(func=lambda call: True)
     def process_change_settings(call):
         """Get the name of parameter user'd like to change"""
@@ -169,6 +173,7 @@ class Bot:
             Utils.FUNCTIONS["Search"](call)
             Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
+    @restart_handler
     @bot.inline_handler(lambda query: True)
     def query_text(query):
         request = Bot.request_dict.get(query.from_user.id, Request())
