@@ -156,15 +156,37 @@ class Bot:
         text = ''
         if not items:
             Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
+                                      reply_markup=Settings.markup_home,
                                       text="No items were found. Please, try another request")
             return
-        for item in items[:request.num]:
-            text+=r'''<a href="{}">{}</a>'''.format(item[0],item[1][:30]+"...")+\
-                "\n<b>Rating: </b>{} points\n<b>Positive feedbacks: </b>{}%\n<b>Price: </b>{}$\n<b>Shipping: </b>{}$\n".format(item[3],item[2],item[4],item[5])+"\n"
+        markup = Utils.generate_next_prev_keyboard(0, round(len(items) / 5))
+        items_5 = [items[i:i + 5] for i in range(0, len(items), 5)]
+        pages = list(map(Utils.make_page, items_5))
+        request.pages = pages
+        request.page = 0
+        request.message = message
         Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
-                                  text=text, parse_mode='html', disable_web_page_preview = True)
+                                  text=pages[0], parse_mode='html', disable_web_page_preview = True, reply_markup = markup)
         Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
                              text="Hello \U0001f604")
+
+    @error_handler
+    @restart_handler
+    @bot.callback_query_handler(func=lambda call: "Next" in call.data or "Prev" in call.data)
+    def process_change(call):
+        label, cur = call.data.split()
+        cur = int(cur)
+        request = Bot.request_dict[call.message.chat.id]
+        markup = None
+        if label == "Next":
+            request.page+=1
+            markup = Utils.generate_next_prev_keyboard(cur + 1, len(request.pages))
+        if label == "Prev":
+            request.page-=1
+            markup = Utils.generate_next_prev_keyboard(cur - 1, len(request.pages))
+        Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                  text=request.pages[cur], parse_mode='html',
+                                  disable_web_page_preview=True, reply_markup=markup)
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: True)

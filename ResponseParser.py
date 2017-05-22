@@ -27,6 +27,7 @@ class ResponseParser(object):
         titles = self.parse_xml('title')
         # to avoid duplicates because of reload pages while making request
         items = list(zip(urls, titles, rating, scores, price, shipping))
+        print(items[:10])
         items = list(OrderedDict.fromkeys(items))
         if self.__rating:
             items = list(filter(lambda x: float(x[2]) >= int(self.__rating), items))

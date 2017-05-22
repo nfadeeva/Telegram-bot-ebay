@@ -81,6 +81,36 @@ def generate_markup(items):
     return markup
 
 
+def generate_next_prev_keyboard(cur, end):
+    markup = types.InlineKeyboardMarkup()
+    next_btn = types.InlineKeyboardButton(text="Next Page >>",
+                               callback_data="Next " + str(cur))
+    prev_btn = types.InlineKeyboardButton(text="<< Previous Page",
+                               callback_data="Prev " + str(cur))
+    if cur == 0:
+        markup.add(next_btn)
+    elif cur == end - 1:
+        markup.add(prev_btn)
+    else:
+        markup.row(prev_btn, next_btn)
+    last_row = generate_inline_button("Main Menu"), \
+               generate_inline_button("Help")
+    markup.row(*last_row)
+    return markup
+
+
+def make_page(items):
+    text = ''
+    for item in items:
+        text += r'''<a href="{}">{}</a>'''.format(item[0], item[1][:30] + "...") + \
+                "\n<b>Rating: </b>{} points\n" \
+                "<b>Positive feedbacks: </b>{}%\n" \
+                "<b>Price: </b>{}$\n<b>" \
+                "Shipping: </b>{}$\n".format(item[3], item[2], item[4], item[5]) + "\n"
+    return text
+
+
+
 def generate_num_keyboard(start, end, text, type=None, next=None):
     last_row = generate_inline_button("Main Menu"), \
               generate_inline_button("Help")
@@ -91,7 +121,6 @@ def generate_num_keyboard(start, end, text, type=None, next=None):
                                               callback_data=label + str(start) + "<<")
     last_button = types.InlineKeyboardButton(text=str(end) + ">>",
                                              callback_data=label + str(end)+">>")
-
     if type == "Left":
         for i in range(start, start + 3):
             buttons.append(types.InlineKeyboardButton(text=str(i),
@@ -125,17 +154,19 @@ def change_markup(markup, data, text):
     markups_dict = markup.to_dic()['inline_keyboard'][0]
     nums = list(map(lambda x: int(x['text'].strip("<>")), markups_dict))
     start, end = nums[0], nums[-1]
+    type, next = None, None
     if "<<" in data:
-        return generate_num_keyboard(start, end, text, type="Left")
+        type = "Left"
     if ">>" in data:
-        return generate_num_keyboard(start, end, text, type="Right")
+        type = "Right"
     elif "<" in data:
         if not nums[1] == start + 1:
-            return generate_num_keyboard(start, end, text, next=nums[1] - 1)
+            next = nums[1] - 1
         else:
-            return generate_num_keyboard(start, end, text, type="Left")
+            type = "Left"
     else:
         if not nums[-2] == end - 1:
-            return generate_num_keyboard(start, end, text, next=nums[1] + 1)
+            next = nums[1] + 1
         else:
-            return generate_num_keyboard(start, end, text, type="Right")
+            type = "Right"
+    return generate_num_keyboard(start, end, text, type=type, next=next)

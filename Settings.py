@@ -4,7 +4,7 @@ SORT_ORDERS = ['Best Match', 'Price Plus Shipping Lowest', 'None']
 SETTINGS = ['Keywords', 'Sort', 'Feedback', 'Rating']
 CHANGES = ['Get results', 'Change another one setting', 'Accept changes']
 LABELS = {'Rating': 'rating ', 'Num': 'num ', 'Feedback': 'feedback '}
-PAGES = 60
+PAGES = 50
 NUM = 10  # default number of items in result
 
 markup_home = types.InlineKeyboardMarkup()

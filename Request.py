@@ -13,6 +13,9 @@ class Request:
         self.change = False
         self.markups = {Settings.LABELS['Rating']: Settings.RATING,
                         Settings.LABELS['Num']: Settings.NUM_KEYBOARD}
+        self.page = 0
+        self.pages = None
+        self.message = None
 
     def change_num_keyword(self, label, call):
         self.markups[label] = Utils.change_markup(self.markups[label], call.data, label)
