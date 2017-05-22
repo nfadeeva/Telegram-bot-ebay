@@ -117,19 +117,7 @@ class Bot:
         chat_id = call.message.chat.id
         request = Bot.request_dict[chat_id]
         request.feedback = call.data.split()[1]
-        request.changes_detector(call, "How many items do you want to see?",
-                                   Settings.MARKUPS['Num'])
-
-    @error_handler
-    @restart_handler
-    @bot.callback_query_handler(func=lambda call: Settings.LABELS['Num'] in call.data)
-    def process_num(call):
-        request = Bot.request_dict[call.message.chat.id]
-        if "keyboard" in call.data:
-            request.change_num_keyword(Settings.LABELS['Num'], call)
-        else:
-            request.num = int(call.data.split()[1])
-            Bot.send_results(call.message, request)
+        Bot.send_results(call.message, request)
 
     @error_handler
     @restart_handler
@@ -159,16 +147,14 @@ class Bot:
                                       reply_markup=Settings.markup_home,
                                       text="No items were found. Please, try another request")
             return
-        markup = Utils.generate_next_prev_keyboard(0, round(len(items) / 5))
-        items_5 = [items[i:i + 5] for i in range(0, len(items), 5)]
-        pages = list(map(Utils.make_page, items_5))
+        markup = Utils.generate_next_prev_keyboard(0, round(len(items) / 4))
+        items_split = [items[i:i + 4] for i in range(0, len(items), 4)]
+        pages = list(map(Utils.make_page, items_split))
         request.pages = pages
         request.page = 0
         request.message = message
-        Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id,
-                                  text=pages[0], parse_mode='html', disable_web_page_preview = True, reply_markup = markup)
-        Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
-                             text="Hello \U0001f604")
+        Bot.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=pages[0],
+                                  parse_mode='html', disable_web_page_preview=True, reply_markup=markup)
 
     @error_handler
     @restart_handler
@@ -179,10 +165,10 @@ class Bot:
         request = Bot.request_dict[call.message.chat.id]
         markup = None
         if label == "Next":
-            request.page+=1
+            request.page += 1
             markup = Utils.generate_next_prev_keyboard(cur + 1, len(request.pages))
         if label == "Prev":
-            request.page-=1
+            request.page -= 1
             markup = Utils.generate_next_prev_keyboard(cur - 1, len(request.pages))
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                                   text=request.pages[cur], parse_mode='html',

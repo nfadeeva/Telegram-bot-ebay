@@ -83,9 +83,9 @@ def generate_markup(items):
 
 def generate_next_prev_keyboard(cur, end):
     markup = types.InlineKeyboardMarkup()
-    next_btn = types.InlineKeyboardButton(text="Next Page >>",
+    next_btn = types.InlineKeyboardButton(text="Next Page »",
                                callback_data="Next " + str(cur))
-    prev_btn = types.InlineKeyboardButton(text="<< Previous Page",
+    prev_btn = types.InlineKeyboardButton(text="« Previous Page",
                                callback_data="Prev " + str(cur))
     if cur == 0:
         markup.add(next_btn)
@@ -117,32 +117,32 @@ def generate_num_keyboard(start, end, text, type=None, next=None):
     markup = types.InlineKeyboardMarkup()
     label = text + "keyboard"
     buttons = []
-    first_button = types.InlineKeyboardButton(text="<<" + str(start),
-                                              callback_data=label + str(start) + "<<")
-    last_button = types.InlineKeyboardButton(text=str(end) + ">>",
-                                             callback_data=label + str(end)+">>")
+    first_button = types.InlineKeyboardButton(text="« " + str(start),
+                                              callback_data=label + str(start) + "«")
+    last_button = types.InlineKeyboardButton(text=str(end) + " »",
+                                             callback_data=label + str(end)+"»")
     if type == "Left":
         for i in range(start, start + 3):
             buttons.append(types.InlineKeyboardButton(text=str(i),
                                                       callback_data=text + str(i)))
-        buttons.append(types.InlineKeyboardButton(text=str(start + 3) + ">",
+        buttons.append(types.InlineKeyboardButton(text=str(start + 3) + " ›",
                                                   callback_data=label + str(start + 3)))
         buttons.append(last_button)
     elif type == "Right":
         buttons.append(first_button)
-        buttons.append(types.InlineKeyboardButton(text="<" + str(end - 3),
-                                                  callback_data=label + str(end - 3) + "<"))
+        buttons.append(types.InlineKeyboardButton(text="‹ " + str(end - 3),
+                                                  callback_data=label + str(end - 3) + "‹"))
         for i in range(end - 2, end + 1):
             buttons.append(types.InlineKeyboardButton(text=str(i),
                                                       callback_data=text + str(i)))
     else:
         buttons.append(first_button)
-        buttons.append(types.InlineKeyboardButton(text="<"+str(next),
-                                                  callback_data=label + "<"+str(next)))
+        buttons.append(types.InlineKeyboardButton(text="‹ "+str(next),
+                                                  callback_data=label + "‹"+str(next)))
         buttons.append(types.InlineKeyboardButton(text=str(next+1),
                                                   callback_data=text + str(next+1)))
-        buttons.append(types.InlineKeyboardButton(text=str(next+2) + ">",
-                                                  callback_data=label + str(next+2) + ">"))
+        buttons.append(types.InlineKeyboardButton(text=str(next+2) + " ›",
+                                                  callback_data=label + str(next+2) + "›"))
         buttons.append(last_button)
 
     markup.row(*buttons)
@@ -152,14 +152,14 @@ def generate_num_keyboard(start, end, text, type=None, next=None):
 
 def change_markup(markup, data, text):
     markups_dict = markup.to_dic()['inline_keyboard'][0]
-    nums = list(map(lambda x: int(x['text'].strip("<>")), markups_dict))
+    nums = list(map(lambda x: int(x['text'].strip("«‹›»")), markups_dict))
     start, end = nums[0], nums[-1]
     type, next = None, None
-    if "<<" in data:
+    if "«" in data:
         type = "Left"
-    if ">>" in data:
+    if "»" in data:
         type = "Right"
-    elif "<" in data:
+    elif "‹" in data:
         if not nums[1] == start + 1:
             next = nums[1] - 1
         else:

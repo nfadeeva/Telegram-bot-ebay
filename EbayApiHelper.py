@@ -64,8 +64,7 @@ class EbayApiHelper(object):
     def futures(self, pages):
         """Parallel request's post"""
         real_num_pages = re.findall(r'<totalPages>(\d+)<',
-                                    self.request(1,pages).decode())[0] #detect how many pages were found
-        self.__request.progress = 0
+                                    self.request(1, pages).decode())[0] #detect how many pages were found
         pages = min(int(real_num_pages), pages)
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = {executor.submit(self.request, page, pages): page for page in range(1, pages)}
