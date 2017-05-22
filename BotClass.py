@@ -75,10 +75,13 @@ class Bot:
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
     def process_settings(call):
         """Permit user to change some parameters of request"""
-
+        request = Bot.request_dict.get(call.message.chat.id, Request())
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  reply_markup=Settings.MARKUPS['Settings'],
-                                  text="Tap on the setting you'd like to change")
+                                      reply_markup=Settings.MARKUPS['Settings'],
+                                      text="<b>Keywords:</b> {}\n <b>Sort:</b> {}\n"
+                                      "<b>Positive feedbacks:</b> {}%\n<b>Rating:</b> {} points\n\n".format(request.keywords, request.sort, request.feedback, request.rating)+
+                                           "Please, choose the option you'd like to change",
+                                      parse_mode='html')
 
     @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Search")
@@ -113,7 +116,7 @@ class Bot:
     @bot.callback_query_handler(func=lambda call: call.data in Settings.SORT_ORDERS)
     def process_sellers_sort(call):
         request = Bot.request_dict[call.message.chat.id]
-        request.sort = call.data.replace(" ","")
+        request.sort = call.data
         request.changes_detector(call, "How high should be seller's positive ratings percentage? ", Settings.RATING)
 
     @error_handler
@@ -211,6 +214,11 @@ class Bot:
             Utils.functions["Search"](call)
             Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)
 
+    @error_handler
+    @bot.message_handler(func= lambda x: True)
+    def incorrect_message(message):
+        Bot.bot.send_message(message.chat.id, reply_markup=Settings.markup_home,
+                             text="Hello \U0001f604")
 
 if __name__ == '__main__':
     random.seed()

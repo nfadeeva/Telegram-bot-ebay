@@ -7,8 +7,8 @@ class Request:
     def __init__(self):
         self.keywords = None
         self.sort = None
-        self.feedback = None
-        self.rating = None
+        self.feedback = 0
+        self.rating = 0
         self.progress = 0
         self.change = False
         self.markups = {Settings.LABELS['Rating']: Settings.RATING,

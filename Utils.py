@@ -8,7 +8,8 @@ smiles = {"Search": "\U0001F50E",
           "Settings": "\U0001F527",
           "Result": "\U0001F6CD",
           "Help": "\U00002753",
-          "Item": "\U0001F535"
+          "Item": "\U0001F535",
+          "Down":"\U00002B07"
           }
 SETTINGS = ['Keywords', 'Sort', 'Feedback', 'Rating']
 

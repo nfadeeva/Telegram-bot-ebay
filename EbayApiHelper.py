@@ -58,7 +58,7 @@ class EbayApiHelper(object):
         # sortOrder is a string
         if self.__sort:
             sort_elem = ET.SubElement(root, "sortOrder")
-            sort_elem.text = self.__sort
+            sort_elem.text = self.__sort.replace(" ","")
         return ET.tostring(root).decode("utf-8")
 
     def futures(self, pages):

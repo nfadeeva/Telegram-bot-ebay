@@ -5,13 +5,12 @@ SETTINGS = ['Keywords', 'Sort', 'Feedback', 'Rating']
 CHANGES = ['Get results', 'Change another one setting', 'Accept changes']
 LABELS = {'Rating': 'rating ', 'Num': 'num ', 'Feedback': 'feedback '}
 PAGES = 50
-NUM = 10  # default number of items in result
 
 markup_home = types.InlineKeyboardMarkup()
 markup_home.row(generate_inline_button("Search"))
 markup_home.row(generate_inline_button("Result"))
-markup_home.row(generate_inline_button("Help"),
-                generate_inline_button("Settings"))
+markup_home.row(generate_inline_button("Settings"),
+                generate_inline_button("Help"))
 markup_last = types.InlineKeyboardMarkup()
 last_row = generate_inline_button("Main Menu"), \
            generate_inline_button("Help")
@@ -32,5 +31,5 @@ RATING = generate_num_keyboard(0, 100, LABELS["Rating"], next=1)
 NUM_KEYBOARD = generate_num_keyboard(1, 20,  LABELS["Num"], next=2)
 
 MARKUPS = {'Sort': generate_markup(SORT_ORDERS), 'Settings': generate_markup(SETTINGS),
-           'Feedback': FEEDBACK, 'Num': NUM_KEYBOARD, 'Rating': RATING,
+           'Feedback': FEEDBACK, 'Rating': RATING,
            'Changes': generate_markup(CHANGES)}
