@@ -1,4 +1,3 @@
-import Settings
 import Utils
 from Utils import bot
 from EbayApiHelper import EbayApiHelper
@@ -14,7 +13,7 @@ class Request:
         self.feedback = 0
         self.rating = 0
         self.change = False
-        self.markups = {Settings.LABELS['Rating']: Settings.RATING}
+        self.markups = {Utils.LABELS['Rating']: Utils.MARKUPS['Positive Ratings Percentage']}
         self.page = 0
         self.pages = None
         self.message = None
@@ -33,14 +32,14 @@ class Request:
                                   reply_markup=markup,
                                   text=text)
         else:
-            Utils.functions["Change"](call)
+            Utils.FUNCTIONS["Change"](call)
 
     def get_result(self):
         bot.edit_message_text(chat_id=self.message.chat.id, message_id=self.message.message_id,
                                   text="Please, wait...\n0% is done")
 
         helper = EbayApiHelper(self.keywords, self.sort, self.message)
-        futures = helper.futures(Settings.PAGES)
+        futures = helper.futures(Utils.PAGES)
         xmldocs = []
         for i in futures:
             xmldocs.append(minidom.parse(BytesIO(i.result())))
@@ -49,9 +48,10 @@ class Request:
         bot.edit_message_text(chat_id=self.message.chat.id, message_id=self.message.message_id, text="DONE")
 
     def send_result(self):
+        self.get_result()
         if not self.items:
             bot.edit_message_text(chat_id=self.message.chat.id, message_id=self.message.message_id,
-                                  reply_markup=Settings.markup_home,
+                                  reply_markup=Utils.MARKUPS['Home'],
                                   text="No items were found. Please, try another request")
             return
         markup = Utils.generate_next_prev_keyboard(0, round(len(self.items) / 4))
