@@ -8,8 +8,7 @@ smiles = {"Search": "\U0001F50E",
           "Settings": "\U0001F527",
           "Result": "\U0001F6CD",
           "Help": "\U00002753",
-          "Item": "\U0001F535",
-          "Down":"\U00002B07"
+          "Item": "\U0001F535"
           }
 SETTINGS = ['Keywords', 'Sort', 'Feedback', 'Rating']
 
@@ -38,7 +37,7 @@ def restart_handler(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # Check if args start with '__main__.Bot' or message
+        # Check if args start with '__main__.Bot' or __message
         index = 0
         try:
             message = args[0]
@@ -104,13 +103,12 @@ def generate_next_prev_keyboard(cur, end):
 def make_page(items):
     text = ''
     for item in items:
-        text += r'''<a href="{}">{}</a>'''.format(item.url, item.title[:30] + "...") + \
+        text += r'''<a href="{}">{}</a>'''.format(item.url, item.title + "...") + \
                 "\n<b>Rating: </b>{} points\n" \
                 "<b>Positive feedbacks: </b>{}%\n" \
                 "<b>Price: </b>{}$\n<b>" \
                 "Shipping: </b>{}$\n".format(item.score, item.rating, item.price, item.shipping) + "\n"
     return text
-
 
 
 def generate_num_keyboard(start, end, text, type=None, next=None):

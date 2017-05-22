@@ -18,7 +18,8 @@ class ResponseParser(object):
                 res.append(element.firstChild.nodeValue)
         return res
 
-    def parse_request(self):
+    @property
+    def items(self):
         urls = self.parse_xml('viewItemURL')
         scores = self.parse_xml('feedbackScore')
         rating = self.parse_xml('positiveFeedbackPercent')
@@ -28,12 +29,11 @@ class ResponseParser(object):
         imgs = self.parse_xml('galleryURL')
         # to avoid duplicates because of reload pages while making request
         items = list(zip(urls, titles, rating, scores, price, shipping, imgs))
-        Item = namedtuple('Item', ['url', 'title','rating','score','price','shipping','img'], verbose=True)
+        item = namedtuple('Item', ['url', 'title', 'rating', 'score', 'price', 'shipping', 'img'], verbose=True)
         items = list(OrderedDict.fromkeys(items))
-        items = map(lambda x: Item(*x), items)
+        items = map(lambda x: item(*x), items)
         if self.__rating:
             items = list(filter(lambda x: float(x.rating) >= int(self.__rating), items))
         if self.__feedback:
             items = list(filter(lambda x: int(x.score) >= int(self.__feedback), items))
-        print(len(items))
         return items

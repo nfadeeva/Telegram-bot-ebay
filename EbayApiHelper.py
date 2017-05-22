@@ -10,7 +10,7 @@ from Utils import bot
 class EbayApiHelper(object):
     """Make xml request and get response from eBay"""
 
-    def __init__(self, keywords, request, sort, message):
+    def __init__(self, keywords, sort, message):
 
         self.__headers = {'X-EBAY-SOA-SERVICE-NAME': 'FindingService',
                           'X-EBAY-SOA-OPERATION-NAME': 'findItemsByKeywords',
@@ -20,9 +20,9 @@ class EbayApiHelper(object):
         self.__item_filter = {'name': 'listingType', 'value': 'FixedPrice'}
         self.__keywords = keywords
         self.__sort = sort
-        self.__request = request
-        self.message = message
-        self.lock = threading.Lock()
+        self.__progress = -1
+        self.__message = message
+        self.__lock = threading.Lock()
 
     def create_xml(self, page_num):
         """Returns request in xml format"""
@@ -56,17 +56,18 @@ class EbayApiHelper(object):
         # sortOrder is a string
         if self.__sort:
             sort_elem = ET.SubElement(root, "sortOrder")
-            sort_elem.text = self.__sort.replace(" ","")
+            sort_elem.text = self.__sort.replace(" ", "")
         return ET.tostring(root).decode("utf-8")
 
     def futures(self, pages):
         """Parallel request's post"""
+
         real_num_pages = re.findall(r'<totalPages>(\d+)<',
                                     self.request(1, pages).decode())[0]
         pages = min(int(real_num_pages), pages)
         with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
             futures = {executor.submit(self.request, page, pages): page for page in range(1, pages)}
-        self.__request.progress = 0
+        self.__progress = -1
         return futures
 
     def request(self, page, pages):
@@ -77,10 +78,10 @@ class EbayApiHelper(object):
         return s.content
 
     def send(self, pages):
-        self.lock.acquire()
-        self.__request.progress += (1 / pages * 100)
-        bot.edit_message_text(chat_id=self.message.chat.id, message_id=self.message.message_id,
+        self.__lock.acquire()
+        self.__progress += (1 / pages * 100)
+        bot.edit_message_text(chat_id=self.__message.chat.id, message_id=self.__message.message_id,
                               text="Please, wait...\n"
-                                   "{}% is done".format(int(self.__request.progress)))
-        self.lock.release()
+                                   "{}% is done".format(int(self.__progress)))
+        self.__lock.release()
 
