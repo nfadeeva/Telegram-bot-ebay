@@ -56,6 +56,22 @@ class Bot:
                                   text="Hello")
 
     @error_handler
+    @bot.callback_query_handler(func=lambda call: call.data == "Result")
+    def process_settings(call):
+        """Permit user to change some parameters of request"""
+        request = Bot.request_dict.get(call.message.chat.id)
+        if request and request.pages:
+            markup = Utils.generate_next_prev_keyboard(request.page, round(len(request.pages) / 4))
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      text=request.pages[request.page], parse_mode='html',
+                                      disable_web_page_preview=True, reply_markup=markup)
+        else:
+            Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                      text="There is nothing to show, please, make request and see result here",
+                                      disable_web_page_preview=True, reply_markup=Settings.markup_last)
+
+
+    @error_handler
     @bot.callback_query_handler(func=lambda call: call.data == "Settings")
     def process_settings(call):
         """Permit user to change some parameters of request"""
@@ -190,7 +206,7 @@ class Bot:
         if markup:
             Bot.bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id,
                                   reply_markup=markup,
-                                  text="Change setting")
+                                  text="Please, change setting")
         else:
             Utils.functions["Search"](call)
             Bot.bot.register_next_step_handler(call.message, Bot.process_keywords)

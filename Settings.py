@@ -9,12 +9,13 @@ NUM = 10  # default number of items in result
 
 markup_home = types.InlineKeyboardMarkup()
 markup_home.row(generate_inline_button("Search"))
+markup_home.row(generate_inline_button("Result"))
 markup_home.row(generate_inline_button("Help"),
                 generate_inline_button("Settings"))
-
+markup_last = types.InlineKeyboardMarkup()
 last_row = generate_inline_button("Main Menu"), \
            generate_inline_button("Help")
-
+markup_last.row(*last_row)
 FEEDBACK = types.InlineKeyboardMarkup()
 buttons = []
 for i in [(100,"Low (>=100)"),  (1000," Medium (>=1000)"), (10000, "High (>=10000)"),

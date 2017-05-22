@@ -6,6 +6,7 @@ bot = telebot.TeleBot(config.token)  # Need to create bot here to use bot.'funct
 smiles = {"Search": "\U0001F50E",
           "Main Menu": "\U0001F3E0",
           "Settings": "\U0001F527",
+          "Result": "\U0001F6CD",
           "Help": "\U00002753",
           "Item": "\U0001F535"
           }
