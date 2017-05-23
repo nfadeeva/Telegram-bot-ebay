@@ -86,7 +86,8 @@ def generate_next_prev_keyboard(cur, end):
     prev_btn = types.InlineKeyboardButton(text="« Previous Page",
                                callback_data="Prev " + str(cur))
     if cur == 0:
-        markup.add(next_btn)
+        if end !=0:
+            markup.add(next_btn)
     elif cur == end - 1:
         markup.add(prev_btn)
     else:

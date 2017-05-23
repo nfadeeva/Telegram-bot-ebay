@@ -146,7 +146,7 @@ class Bot:
             request.page -= 1
             markup = Utils.generate_next_prev_keyboard(cur - 1, len(request.pages))
         Bot.bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                  text=request.pages[cur], parse_mode='html',
+                                  text=request.pages[request.page], parse_mode='html',
                                   disable_web_page_preview=True, reply_markup=markup)
 
     @restart_handler

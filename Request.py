@@ -43,7 +43,7 @@ class Request:
         xmldocs = []
         for i in futures:
             xmldocs.append(minidom.parse(BytesIO(i.result())))
-        parser = ResponseParser(xmldocs, self.rating, self.feedback)
+        parser = ResponseParser(xmldocs, self.rating, self.feedback, self.sort)
         self.items = parser.items
         bot.edit_message_text(chat_id=self.message.chat.id, message_id=self.message.message_id, text="DONE")
 
