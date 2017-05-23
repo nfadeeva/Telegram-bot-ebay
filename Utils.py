@@ -38,8 +38,7 @@ FUNCTIONS = {"Change another one setting": lambda call:
              bot.edit_message_text(chat_id=call.message.chat.id,
                                    message_id=call.message.message_id,
                                    reply_markup=generate_markup(CHANGES),
-                                   text="What do you want to do?")
-             }
+                                   text="What do you want to do?")}
 
 
 def restart_handler(func):
@@ -191,4 +190,5 @@ def markup_home():
 MARKUPS = {'Sort': generate_markup(SORT_ORDERS), 'Settings': generate_markup(SETTINGS),
            'Feedback Rating': markup_feedback(),
            'Positive Ratings Percentage': generate_num_keyboard(0, 100, LABELS["Rating"], next=1),
-           'Changes': generate_markup(CHANGES), 'Home': markup_home(), 'Last': types.InlineKeyboardMarkup().row(LAST_ROW)}
+           'Changes': generate_markup(CHANGES), 'Home': markup_home(),
+           'Last': types.InlineKeyboardMarkup().row(LAST_ROW)}
